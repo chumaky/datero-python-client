@@ -1,0 +1,66 @@
+# connection to the postgres HSQL container
+postgres:
+  hostname: "localhost"
+  port: 5432
+  database: "postgres"
+  user: "postgres"
+  password: "postgres"
+
+# true - extension is installed
+# false - extension is not installed automatically. but still listed in pg_available_extensions and could be installed manually
+fdw:
+  file_fdw: true
+  mongo_fdw: true
+  mysql_fdw: true
+  oracle_fdw: true
+  postgres_fdw: true
+  sqlite_fdw: true
+  tds_fdw: true
+
+# templates for FDW user mapping
+user_mapping: &user-mapping
+  username: ""
+  password: ""
+
+# templates for specific FDW setup
+# TODO: add support for all available options for each FDW
+file_fdw: &file-fdw
+  filename: ""
+  program: ""
+
+mongo_fdw: &mongo-fdw
+  address: ""
+  port: "27017"
+  authentication_database: "admin"
+
+mysql_fdw: &mysql-fdw
+  host: ""
+  port: "3306"
+
+oracle_fdw: &oracle-fdw
+  dbserver: ""
+
+sqlite_fdw: &sqlite-fdw
+  database: ""
+
+tds_fdw: &tds-fdw
+  servername: ""
+  port: "1433"
+  database: ""
+
+# all individual FDW sections are optional.
+# should be specified only if corresponding FDW entry in the "fdw" section above is "true"
+# there are multiple Foreign Servers could be specified per single FDW
+mongo:
+  server1:
+    <<: *mongo-fdw
+    address: "hostname"
+    user_mapping:
+    <<: *user-mapping
+    username: "some_user"
+    password: "password"
+
+  serverN:
+    <<: *mongo-fdw
+    address: "hostname"
+    authentication_database: "some_db"
