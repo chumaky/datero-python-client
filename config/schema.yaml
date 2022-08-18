@@ -1,0 +1,52 @@
+# absolutely every key/attribute in the config file is an instance of the "entry" structure
+# it has 3 mandatory system attributes: _required/_default/_type with specified default values
+# For example, just presence of some "key:" entry in the file means that this "key" is mandatory
+# by default, it has "string" datatype and "NULL" as a value
+# mentioned above _required/_default/_type attributes are reserved.
+# it's not advisable to introduce custom keys with such naming pattern
+entry:
+  _required: true
+  _default: null
+  _type:
+    - empty
+    - boolean
+    - string
+    - number
+    - array
+    - map
+
+# connection to the postgres HSQL container
+postgres:
+  _type: map
+  hostname: localhost
+  port:
+    _default: 5432
+    _type: number
+  database: postgres
+  user: postgres
+  password: postgres
+
+# FDW extension structure
+fdw_name: &fdw-name
+  _type:
+    - empty
+    - boolean
+    - map
+  enabled:
+    _required: false
+    _default: true
+  schema_name:
+    _required: false
+    _default: "parent"
+
+# list of extensions that managed by this config
+fdw_list:
+  _type: map
+  file_fdw: *fdw-name
+  mongo_fdw: *fdw-name
+  mysql_fdw: *fdw-name
+  oracle_fdw: *fdw-name
+  postgres_fdw: *fdw-name
+  sqlite_fdw: *fdw-name
+  tds_fdw: *fdw-name
+
