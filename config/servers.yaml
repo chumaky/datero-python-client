@@ -1,0 +1,23 @@
+# section placeholders to override default values
+postgres:
+
+fdw_list:
+
+# Example: foreign servers
+# server1:
+#   fdw_name: mongo_fdw
+#   options:
+#   user_mapping:
+#     username: some_user
+#     password: password
+#
+# ...
+#
+# serverN:
+#   fdw_name: mysql_fdw
+#   options:
+#     address: hostname
+#     authentication_database: some_db
+#   user_mapping:
+#     username: some_user
+#     password: password
