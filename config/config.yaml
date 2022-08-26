@@ -1,3 +1,5 @@
+# for list of available options see "default.yaml" and "schema.yaml"
+
 # section placeholders to override default values
 postgres:
 

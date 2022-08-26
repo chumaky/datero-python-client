@@ -1,17 +1,18 @@
 """Activate required extensions"""
 
-from hsql.config import load_config
+from .config import ConfigParser
 
 class Extension:
     """Extension API wrapper"""
 
     def __init__(self):
-        self.config = load_config()
+        self.cp = ConfigParser()
+        self.config = self.cp.parse_config()
 
     @property
     def fdw(self):
         """List of FDWs"""
-        return self.config['fdw']
+        return self.config['fdw_list']
 
 
     def extension_list(self):
