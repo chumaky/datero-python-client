@@ -4,6 +4,7 @@ isort==5.10.1
 lazy-object-proxy==1.7.1
 mccabe==0.7.0
 platformdirs==2.5.2
+psycopg2==2.9.3
 pylint==2.14.5
 ruamel.yaml==0.17.21
 ruamel.yaml.clib==0.2.6
