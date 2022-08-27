@@ -1,6 +1,6 @@
 """Parsing config file"""
 import os
-import json
+#import json
 
 from copy import deepcopy
 from ruamel.yaml import YAML
