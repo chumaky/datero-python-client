@@ -20,7 +20,7 @@ class Connection(object):
 
 
     def __del__(self):
-        if self._conn is not None:
+        if hasattr(self, '_conn') and self._conn is not None:
             self._conn.close()
 
 

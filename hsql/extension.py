@@ -13,7 +13,7 @@ class Extension:
         self.conn = Connection()
 
     @property
-    def fdw(self):
+    def fdw_list(self):
         """List of FDWs"""
         return self.config['fdw_list']
 
@@ -23,7 +23,7 @@ class Extension:
         try:
             cur = self.conn.cursor
 
-            for ext, props in self.fdw.items():
+            for ext, props in self.fdw_list.items():
                 schema_name = props['schema_name'] if props['schema_name'] is not None else ext
                 if props['enabled']:
                     sql = f'CREATE SCHEMA IF NOT EXISTS {schema_name};'
