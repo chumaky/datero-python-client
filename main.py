@@ -5,4 +5,4 @@ from hsql.extension import Extension
 
 if __name__ == "__main__":
     ext = Extension()
-    ext.extension_list()
+    ext.init_extensions()

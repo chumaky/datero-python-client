@@ -2,6 +2,7 @@
 import psycopg2
 
 from .config import ConfigParser
+from .connection import Connection
 
 class Extension:
     """Extension API wrapper"""
@@ -9,7 +10,7 @@ class Extension:
     def __init__(self):
         self.cp = ConfigParser()
         self.config = self.cp.parse_config()
-        self.connection()
+        self.conn = Connection()
 
     @property
     def fdw(self):
@@ -17,25 +18,23 @@ class Extension:
         return self.config['fdw_list']
 
 
-    def extension_list(self):
+    def init_extensions(self):
         """Get list of enabled extensions"""
-        for ext, props in self.fdw.items():
-            schema_name = props['schema_name'] if props['schema_name'] is not None else ext
-            if props['enabled']:
-                print(f'CREATE SCHEMA IF NOT EXISTS {schema_name};')
-                print(f'CREATE EXTENSION IF NOT EXISTS {ext} WITH SCHEMA {schema_name};')
+        try:
+            cur = self.conn.cursor
 
+            for ext, props in self.fdw.items():
+                schema_name = props['schema_name'] if props['schema_name'] is not None else ext
+                if props['enabled']:
+                    sql = f'CREATE SCHEMA IF NOT EXISTS {schema_name};'
+                    cur.execute(sql)
+                    sql = f'CREATE EXTENSION IF NOT EXISTS {ext} WITH SCHEMA {schema_name};'
+                    cur.execute(sql)
+                    self.conn.commit()
+                    print(f'Extension "{ext}" successfully created')
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
+        finally:
+            cur.close()
 
-    def connection(self):
-        #print(self.config['postgres'])
-        conf = self.config['postgres']
-        conn = psycopg2.connect(
-            dbname=conf['database'],
-            user=conf['username'],
-            password=conf['password'],
-            host=conf['hostname'],
-            port=conf['port']
-        )
-
-        #for k, v in self.config['postgres'].items():
-        #    conn[k]

@@ -8,8 +8,15 @@ from ruamel.yaml import YAML
 from . import CONFIG_DIR, DEFAULT_CONFIG, USER_CONFIG
 
 
-class ConfigParser:
+class ConfigParser(object):
     """Parsing config files"""
+
+    def __new__(cls):
+        """Config object is singleton"""
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(ConfigParser, cls).__new__(cls)
+        return cls.instance
+
 
     def __init__(self, config_file: str = USER_CONFIG) -> None:
         self.default_config_file = os.path.join(CONFIG_DIR, DEFAULT_CONFIG)
