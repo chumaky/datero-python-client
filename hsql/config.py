@@ -28,6 +28,8 @@ class ConfigParser(object):
         self.yaml = YAML(typ='safe')
         self.yaml.allow_duplicate_keys = True
 
+        self.parse_config()
+
 
     def parse_default_config(self):
         "Parse default config file"
@@ -44,8 +46,6 @@ class ConfigParser(object):
 
         self.params = self.deep_merge(self.default_params, self.user_params)
         #print('result', json.dumps(self.params, indent=2))
-
-        return self.params
 
 
     def deep_merge(self, a: dict, b: dict) -> dict:

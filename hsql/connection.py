@@ -14,8 +14,7 @@ class Connection(object):
 
 
     def __init__(self):
-        self.cp = ConfigParser()
-        self.config = self.cp.parse_config()
+        self.config = ConfigParser().params
         self._conn = self.init_connection()
 
 

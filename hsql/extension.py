@@ -8,8 +8,7 @@ class Extension:
     """Extension API wrapper"""
 
     def __init__(self):
-        self.cp = ConfigParser()
-        self.config = self.cp.parse_config()
+        self.config = ConfigParser().params
         self.conn = Connection()
 
     @property
