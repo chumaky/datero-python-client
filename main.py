@@ -23,7 +23,10 @@ def parse_params(argv: List[str]) -> str:
         elif opt in ("-c", "--config_file"):
             config_file = arg
 
-    #print('Config file:', config_file, type(config_file))
+    print('Config file:', config_file)
+    if config_file is None:
+        print('WARNING: Config file is not specified. Used default config which only install FDW extensions')
+        print('WARNING: No foreign servers will be available')
     return config_file
 
 
