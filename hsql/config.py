@@ -8,10 +8,10 @@ from ruamel.yaml import YAML
 from . import CONFIG_DIR, DEFAULT_CONFIG, USER_CONFIG
 
 
-class ConfigParser(object):
+class ConfigParser:
     """Parsing config files"""
 
-    def __new__(cls):
+    def __new__(cls, config_file: str = USER_CONFIG):
         """Config object is singleton"""
         if not hasattr(cls, 'instance'):
             cls.instance = super(ConfigParser, cls).__new__(cls)
@@ -20,7 +20,8 @@ class ConfigParser(object):
 
     def __init__(self, config_file: str = USER_CONFIG) -> None:
         self.default_config_file = os.path.join(CONFIG_DIR, DEFAULT_CONFIG)
-        self.user_config_file = os.path.join(CONFIG_DIR, config_file)
+        self.user_config_file = config_file if config_file is not None else \
+                                os.path.join(CONFIG_DIR, USER_CONFIG)
         self.default_params = {}
         self.user_params = {}
         self.params = {}
@@ -41,8 +42,9 @@ class ConfigParser(object):
         "Parse user config file and merge it with default config"
         self.parse_default_config()
 
-        with open(self.user_config_file, encoding='utf-8') as f:
-            self.user_params = self.yaml.load(f)
+        if self.user_config_file is not None:
+            with open(self.user_config_file, encoding='utf-8') as f:
+                self.user_params = self.yaml.load(f)
 
         self.params = self.deep_merge(self.default_params, self.user_params)
         #print('result', json.dumps(self.params, indent=2))

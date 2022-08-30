@@ -3,18 +3,18 @@ import psycopg2
 
 from .config import ConfigParser
 
-class Connection(object):
+class Connection:
     """Parsing config files"""
 
-    def __new__(cls):
+    def __new__(cls, config_file: str = None):
         """Connection object is singleton"""
         if not hasattr(cls, 'instance'):
             cls.instance = super(Connection, cls).__new__(cls)
         return cls.instance
 
 
-    def __init__(self):
-        self.config = ConfigParser().params
+    def __init__(self, config_file: str = None):
+        self.config = ConfigParser(config_file).params
         self._conn = self.init_connection()
 
 

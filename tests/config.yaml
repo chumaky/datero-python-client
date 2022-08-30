@@ -1,0 +1,22 @@
+# for list of available options see "default.yaml" and "schema.yaml"
+
+# section placeholders to override default values
+postgres:
+
+fdw_list:
+
+servers:
+  mysql:
+    fdw_name: mysql_fdw
+    options:
+      host: mysql
+      port: 3306
+    user_mapping:
+      username: test
+      password: test
+    import_foreign_schema:
+      remote_schema: dev
+      local_schema: mysql
+
+
+

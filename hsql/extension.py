@@ -7,9 +7,9 @@ from .connection import Connection
 class Extension:
     """Extension API wrapper"""
 
-    def __init__(self):
-        self.config = ConfigParser().params
-        self.conn = Connection()
+    def __init__(self, config_file: str = None):
+        self.config = ConfigParser(config_file).params
+        self.conn = Connection(config_file)
 
     @property
     def fdw_list(self):
