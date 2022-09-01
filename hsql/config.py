@@ -11,7 +11,7 @@ from . import CONFIG_DIR, DEFAULT_CONFIG, USER_CONFIG
 class ConfigParser:
     """Parsing config files"""
 
-    def __new__(cls, config_file: str = USER_CONFIG):
+    def __new__(cls, *args):
         """Config object is singleton"""
         if not hasattr(cls, 'instance'):
             self = super(ConfigParser, cls).__new__(cls)

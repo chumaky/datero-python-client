@@ -6,7 +6,7 @@ from .config import ConfigParser
 class Connection:
     """Parsing config files"""
 
-    def __new__(cls, config_file: str = None):
+    def __new__(cls, *args):
         """Connection object is singleton"""
         if not hasattr(cls, 'instance'):
             cls.instance = super(Connection, cls).__new__(cls)
