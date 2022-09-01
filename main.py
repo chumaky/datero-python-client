@@ -40,6 +40,7 @@ def main(argv):
     ext.init_extensions()
     fdw = FDW(config)
     fdw.init_servers()
+    fdw.create_user_mappings()
 
 
 if __name__ == "__main__":

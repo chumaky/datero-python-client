@@ -14,7 +14,7 @@ class FDW:
     @property
     def servers(self):
         """List of foreign servers"""
-        print(self.config)
+        #print(self.config)
         return self.config['servers'] if 'servers' in self.config else {}
 
 
@@ -23,16 +23,40 @@ class FDW:
         try:
             cur = self.conn.cursor
 
-            for ext, props in self.servers.items():
-                print(f'{ext} - {props}')
-                #schema_name = props['schema_name'] if props['schema_name'] is not None else ext
-                #if props['enabled']:
-                #    sql = f'CREATE SCHEMA IF NOT EXISTS {schema_name};'
-                #    cur.execute(sql)
-                #    sql = f'CREATE EXTENSION IF NOT EXISTS {ext} WITH SCHEMA {schema_name};'
-                #    cur.execute(sql)
-                #    self.conn.commit()
-                #    print(f'Extension "{ext}" successfully created')
+            for server, props in self.servers.items():
+                #print(f'{server} - {props}')
+                options = ', '.join([f"{option} '{value}'" for option, value in props['options'].items()])
+                sql = \
+                    f'CREATE SERVER IF NOT EXISTS {server} ' \
+                    f"FOREIGN DATA WRAPPER {props['fdw_name']} " \
+                    f'OPTIONS ({options})'
+
+                print(sql)
+                cur.execute(sql)
+                self.conn.commit()
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
+        finally:
+            cur.close()
+
+
+    def create_user_mappings(self):
+        """Create user mapping for a foreign servers"""
+        try:
+            cur = self.conn.cursor
+
+            for server, props in self.servers.items():
+                #print(f'{server} - {props}')
+                options = ', '.join([f"{option} '{value}'" for option, value in props['user_mapping'].items()])
+                sql = \
+                    f'CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER ' \
+                    f"SERVER {server} " \
+                    f'OPTIONS ({options})'
+
+                print(sql)
+                cur.execute(sql)
+                self.conn.commit()
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
