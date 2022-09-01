@@ -14,14 +14,22 @@ class ConfigParser:
     def __new__(cls, config_file: str = USER_CONFIG):
         """Config object is singleton"""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(ConfigParser, cls).__new__(cls)
+            self = super(ConfigParser, cls).__new__(cls)
+            cls.instance = self
+            cls._initialized = False
+
         return cls.instance
 
 
     def __init__(self, config_file: str = USER_CONFIG) -> None:
-        self.default_config_file = os.path.join(CONFIG_DIR, DEFAULT_CONFIG)
-        self.user_config_file = config_file if config_file is not None else \
-                                os.path.join(CONFIG_DIR, USER_CONFIG)
+        if self._initialized:
+            return
+
+        self.default_config_file = \
+            os.path.join(os.path.dirname(__file__), '..', CONFIG_DIR, DEFAULT_CONFIG)
+        self.user_config_file = \
+            config_file if config_file is not None else \
+            os.path.join(os.path.dirname(__file__), '..', CONFIG_DIR, USER_CONFIG)
         self.default_params = {}
         self.user_params = {}
         self.params = {}
@@ -30,6 +38,8 @@ class ConfigParser:
         self.yaml.allow_duplicate_keys = True
 
         self.parse_config()
+
+        self._initialized = True
 
 
     def parse_default_config(self):

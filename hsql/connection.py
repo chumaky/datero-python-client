@@ -10,12 +10,18 @@ class Connection:
         """Connection object is singleton"""
         if not hasattr(cls, 'instance'):
             cls.instance = super(Connection, cls).__new__(cls)
+            cls._initialized = False
         return cls.instance
 
 
     def __init__(self, config_file: str = None):
+        if self._initialized:
+            return
+
         self.config = ConfigParser(config_file).params
         self._conn = self.init_connection()
+
+        self._initialized = True
 
 
     def __del__(self):

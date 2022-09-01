@@ -11,11 +11,13 @@ def parse_params(argv: List[str]) -> str:
     """Parse input parameters"""
     config_file = None
     usage_msg = 'main.py [-c|--config_file  <config_file>]'
+
     try:
         opts, _ = getopt.getopt(argv,"hc:",["config_file="])
     except getopt.GetoptError:
         print(usage_msg)
         sys.exit(2)
+
     for opt, arg in opts:
         if opt == '-h':
             print(usage_msg)
@@ -27,6 +29,7 @@ def parse_params(argv: List[str]) -> str:
     if config_file is None:
         print('WARNING: Config file is not specified. Used default config which only install FDW extensions')
         print('WARNING: No foreign servers will be available')
+
     return config_file
 
 
