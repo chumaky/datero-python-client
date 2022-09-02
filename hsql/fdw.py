@@ -79,13 +79,15 @@ class FDW:
                 print(sql)
                 cur.execute(sql)
 
-                #if 'options' in props['import_foreign_schema']:
-                #    options = ', '.join([f"{option} '{value}'" for option, value in props['import_foreign_schema']['options'].items()])
+                if 'options' in props['import_foreign_schema']:
+                    options = ', '.join([f"{option} '{value}'" for option, value in props['import_foreign_schema']['options'].items()])
+                else:
+                    options = None
 
-                sql = f"SELECT admin.import_foreign_schema('{remote_schema}', '{local_schema}', '{server}')"
+                sql = 'SELECT admin.import_foreign_schema(%s, %s, %s, %s)'
 
-                print(sql)
-                cur.execute(sql)
+                print(sql, (remote_schema, local_schema, server, options))
+                cur.execute(sql, (remote_schema, local_schema, server, options))
                 self.conn.commit()
         except psycopg2.Error as e:
             self.conn.rollback()
