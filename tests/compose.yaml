@@ -1,4 +1,15 @@
 services:
+  oracle:
+    image: container-registry.oracle.com/database/express:21.3.0-xe
+    container_name: oracle
+    environment:
+      ORACLE_PWD: admin   # password for SYS, SYSTEM and PDBADMIN
+    ports:
+      - 1521:1521   # JDBC
+      - 5500:5500   # Enterprise Manager GUI
+    volumes:
+      - ./oracle_setup.sql:/docker-entrypoint-initdb.d/startup/oracle_setup.sql
+
   mysql:
     image: mysql
     container_name: mysql

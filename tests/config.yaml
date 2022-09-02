@@ -18,5 +18,14 @@ servers:
       remote_schema: dev
       local_schema: mysql
 
-
+  oracle:
+    fdw_name: oracle_fdw
+    options:
+      dbserver: //oracle:1521/xepdb1
+    user_mapping:
+      user: test
+      password: test
+    import_foreign_schema:
+      remote_schema: TEST
+      local_schema: oracle
 

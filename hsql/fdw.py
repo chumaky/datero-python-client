@@ -1,4 +1,5 @@
 """Foreign server management"""
+from threading import local
 import psycopg2
 
 from .config import ConfigParser
@@ -78,14 +79,10 @@ class FDW:
                 print(sql)
                 cur.execute(sql)
 
-                sql = \
-                    f'IMPORT FOREIGN SCHEMA {remote_schema} ' \
-                    f"FROM SERVER {server} " \
-                    f"INTO {local_schema} "
+                #if 'options' in props['import_foreign_schema']:
+                #    options = ', '.join([f"{option} '{value}'" for option, value in props['import_foreign_schema']['options'].items()])
 
-                if 'options' in props['import_foreign_schema']:
-                    options = ', '.join([f"{option} '{value}'" for option, value in props['import_foreign_schema']['options'].items()])
-                    sql += f'OPTIONS ({options})'
+                sql = f"SELECT admin.import_foreign_schema('{remote_schema}', '{local_schema}', '{server}')"
 
                 print(sql)
                 cur.execute(sql)
