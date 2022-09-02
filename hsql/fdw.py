@@ -62,3 +62,36 @@ class FDW:
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
         finally:
             cur.close()
+
+
+    def import_foreign_schema(self):
+        """Import foreign schema"""
+        try:
+            cur = self.conn.cursor
+
+            for server, props in self.servers.items():
+                #print(f'{server} - {props}')
+                remote_schema = props['import_foreign_schema']['remote_schema']
+                local_schema = props['import_foreign_schema']['local_schema']
+
+                sql = f'DROP SCHEMA IF EXISTS {local_schema} CASCADE; ' f'CREATE SCHEMA IF NOT EXISTS {local_schema}'
+                print(sql)
+                cur.execute(sql)
+
+                sql = \
+                    f'IMPORT FOREIGN SCHEMA {remote_schema} ' \
+                    f"FROM SERVER {server} " \
+                    f"INTO {local_schema} "
+
+                if 'options' in props['import_foreign_schema']:
+                    options = ', '.join([f"{option} '{value}'" for option, value in props['import_foreign_schema']['options'].items()])
+                    sql += f'OPTIONS ({options})'
+
+                print(sql)
+                cur.execute(sql)
+                self.conn.commit()
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
+        finally:
+            cur.close()

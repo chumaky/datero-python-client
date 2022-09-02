@@ -41,6 +41,7 @@ def main(argv):
     fdw = FDW(config)
     fdw.init_servers()
     fdw.create_user_mappings()
+    fdw.import_foreign_schema()
 
 
 if __name__ == "__main__":
