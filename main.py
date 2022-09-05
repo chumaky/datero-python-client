@@ -1,41 +1,27 @@
 """Application entry point"""
-import sys
-import getopt
-from typing import List
+import argparse
 
 from hsql.extension import Extension
 from hsql.fdw import FDW
 
 
-def parse_params(argv: List[str]) -> str:
+def parse_params() -> str:
     """Parse input parameters"""
-    config_file = None
-    usage_msg = 'main.py [-c|--config_file  <config_file>]'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config_file', help='Config file with foreign servers definition')
+    args = parser.parse_args()
 
-    try:
-        opts, _ = getopt.getopt(argv,"hc:",["config_file="])
-    except getopt.GetoptError:
-        print(usage_msg)
-        sys.exit(2)
-
-    for opt, arg in opts:
-        if opt == '-h':
-            print(usage_msg)
-            sys.exit()
-        elif opt in ("-c", "--config_file"):
-            config_file = arg
-
-    print('Config file:', config_file)
-    if config_file is None:
+    if args.config_file is None:
         print('WARNING: Config file is not specified. Used default config which only install FDW extensions')
         print('WARNING: No foreign servers will be available')
 
-    return config_file
+    return args.config_file
 
 
-def main(argv):
+def main():
     """Application entry point"""
-    config = parse_params(argv)
+    config = parse_params()
+
     ext = Extension(config)
     ext.init_extensions()
     fdw = FDW(config)
@@ -45,4 +31,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

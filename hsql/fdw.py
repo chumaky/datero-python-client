@@ -1,5 +1,4 @@
 """Foreign server management"""
-from threading import local
 import psycopg2
 
 from .config import ConfigParser
@@ -72,22 +71,25 @@ class FDW:
 
             for server, props in self.servers.items():
                 #print(f'{server} - {props}')
-                remote_schema = props['import_foreign_schema']['remote_schema']
-                local_schema = props['import_foreign_schema']['local_schema']
+                conf = props['import_foreign_schema']
+                remote_schema = conf['remote_schema']
+                local_schema = conf['local_schema']
 
                 sql = f'DROP SCHEMA IF EXISTS {local_schema} CASCADE; ' f'CREATE SCHEMA IF NOT EXISTS {local_schema}'
                 print(sql)
                 cur.execute(sql)
 
-                if 'options' in props['import_foreign_schema']:
-                    options = ', '.join([f"{option} '{value}'" for option, value in props['import_foreign_schema']['options'].items()])
-                else:
-                    options = None
+                sql = \
+                    f'IMPORT FOREIGN SCHEMA "{remote_schema}" ' \
+                    f'FROM SERVER {server} ' \
+                    f'INTO {local_schema} '
 
-                sql = 'SELECT admin.import_foreign_schema(%s, %s, %s, %s)'
+                if 'options' in conf:
+                    options = ', '.join([f"{option} '{value}'" for option, value in conf['options'].items()])
+                    sql += f'OPTIONS(${options})'
 
-                print(sql, (remote_schema, local_schema, server, options))
-                cur.execute(sql, (remote_schema, local_schema, server, options))
+                print(sql)
+                cur.execute(sql)
                 self.conn.commit()
         except psycopg2.Error as e:
             self.conn.rollback()
