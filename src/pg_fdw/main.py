@@ -1,8 +1,8 @@
 """Application entry point"""
 import argparse
 
-from hsql.extension import Extension
-from hsql.fdw import FDW
+from .extension import Extension
+from .fdw import FDW
 
 
 def parse_params() -> str:
