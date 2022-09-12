@@ -20,6 +20,46 @@ class FDW:
         return self.config['servers'] if 'servers' in self.config else {}
 
 
+    def fdw_list(self):
+        """Get list of available FDWs"""
+        try:
+            cur = self.conn.cursor
+            query = "SELECT name, comment FROM pg_available_extensions WHERE name LIKE '%fdw%' ORDER BY name"
+            cur.execute(query)
+            rows = cur.fetchall()
+            print('rows', rows)
+            return rows
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+        finally:
+            cur.close()
+
+        #return [key for key in self.config['fdw_list'].keys()]
+
+    def server_list(self):
+        """Get list of foreign servers"""
+        try:
+            cur = self.conn.cursor
+            query = """
+                SELECT s.srvname                AS server_name
+                     , f.fdwname                AS fdw_name
+                  FROM pg_foreign_server        s
+                 INNER JOIN
+                       pg_foreign_data_wrapper  f
+                    ON f.oid = s.srvfdw
+                 ORDER BY s.srvname
+            """
+            cur.execute(query)
+            rows = cur.fetchall()
+            print('rows', rows)
+            return rows
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+        finally:
+            cur.close()
+
     def init_servers(self):
         """Get list of enabled extensions"""
         try:

@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/chumaky/hsql-backend"
+"Homepage" = "https://github.com/chumaky/pg_fdw"
 "Postgres HSQL FDW image" = "https://github.com/AmebaBrain/postgres_docker_images"
 
 [project.scripts]
