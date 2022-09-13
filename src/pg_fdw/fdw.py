@@ -27,8 +27,8 @@ class FDW:
             query = "SELECT name, comment FROM pg_available_extensions WHERE name LIKE '%fdw%' ORDER BY name"
             cur.execute(query)
             rows = cur.fetchall()
-            print('rows', rows)
-            return rows
+            res = [{ 'name': val[0], 'description': val[1] } for val in rows]
+            return res
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
@@ -52,13 +52,14 @@ class FDW:
             """
             cur.execute(query)
             rows = cur.fetchall()
-            print('rows', rows)
-            return rows
+            res = [{ 'server_name': val[0], 'fdw_name': val[1] } for val in rows]
+            return res
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
         finally:
             cur.close()
+
 
     def init_servers(self):
         """Get list of enabled extensions"""

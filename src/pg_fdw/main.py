@@ -6,7 +6,7 @@ from .extension import Extension
 from .fdw import FDW
 
 
-def parse_params() -> str:
+def parse_params() -> argparse.Namespace:
     """Parse input parameters"""
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config_file', help='config file with foreign servers definition')
@@ -39,9 +39,13 @@ def main():
         fdw.create_user_mappings()
         fdw.import_foreign_schema()
     elif args.fdw_list:
-        fdw.fdw_list()
+        res = fdw.fdw_list()
+        for row in res:
+            print(f"Name: {row['name']}, Description: {row['description']}")
     elif args.servers:
-        fdw.server_list()
+        res = fdw.server_list()
+        for row in res:
+            print(f"Name: {row['server_name']}, Description: {row['fdw_name']}")
 
 
 if __name__ == "__main__":
