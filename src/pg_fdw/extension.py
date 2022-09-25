@@ -1,15 +1,15 @@
 """Activate required extensions"""
+from typing import Dict
 import psycopg2
 
-from .config import ConfigParser
 from .connection import Connection
 
 class Extension:
     """Extension API wrapper"""
 
-    def __init__(self, config_file: str = None):
-        self.config = ConfigParser(config_file).params
-        self.conn = Connection(config_file)
+    def __init__(self, config: Dict):
+        self.config = config
+        self.conn = Connection(self.config['postgres'])
 
     @property
     def fdw_list(self):

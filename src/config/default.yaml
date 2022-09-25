@@ -34,26 +34,27 @@ fdw_list:
 
 # specific FDW options
 # TODO: add support for all available options for each FDW
-file_fdw:
-  filename:
-  program:
+fdw_options:
+  file_fdw:
+    filename:
+    program:
 
-mongo_fdw:
-  address:
-  port: 27017
-  authentication_database: admin
+  mongo_fdw:
+    address:
+    port: 27017
+    authentication_database: admin
 
-mysql_fdw:
-  host:
-  port: 3306
+  mysql_fdw:
+    host:
+    port: 3306
 
-oracle_fdw:
-  dbserver:
+  oracle_fdw:
+    dbserver:
 
-sqlite_fdw:
-  database:
+  sqlite_fdw:
+    database:
 
-tds_fdw:
-  servername:
-  port: 1433
-  database:
+  tds_fdw:
+    servername:
+    port: 1433
+    database:

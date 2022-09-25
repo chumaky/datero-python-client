@@ -1,7 +1,6 @@
 """Singleton class for postgres database connection"""
+from typing import Dict
 import psycopg2
-
-from .config import ConfigParser
 
 class Connection:
     """Parsing config files"""
@@ -14,11 +13,11 @@ class Connection:
         return cls.instance
 
 
-    def __init__(self, config_file: str = None):
+    def __init__(self, config: Dict):
         if self._initialized:
             return
 
-        self.config = ConfigParser(config_file).params
+        self.config = config
         self._conn = self.init_connection()
 
         self._initialized = True
@@ -32,13 +31,12 @@ class Connection:
     def init_connection(self):
         """Instantiating connection from config credentials"""
         #print(self.config['postgres'])
-        conf = self.config['postgres']
         return psycopg2.connect(
-            dbname=conf['database'],
-            user=conf['username'],
-            password=conf['password'],
-            host=conf['hostname'],
-            port=conf['port']
+            dbname=self.config['database'],
+            user=self.config['username'],
+            password=self.config['password'],
+            host=self.config['hostname'],
+            port=self.config['port']
         )
 
 

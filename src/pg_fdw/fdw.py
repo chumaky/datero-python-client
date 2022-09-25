@@ -3,20 +3,18 @@ from typing import Dict, Tuple
 import psycopg2
 from psycopg2 import sql
 
-from .config import ConfigParser
 from .connection import Connection
 
 class FDW:
     """Foreign server management"""
 
-    def __init__(self, config_file: str = None):
-        self.config = ConfigParser(config_file).params
-        self.conn = Connection()
+    def __init__(self, config: Dict):
+        self.config = config
+        self.conn = Connection(self.config['postgres'])
 
     @property
     def servers(self):
         """List of foreign servers"""
-        ##print(self.config)
         return self.config['servers'] if 'servers' in self.config else {}
 
 
