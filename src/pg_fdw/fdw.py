@@ -26,12 +26,13 @@ class FDW:
             cur.execute(query)
             rows = cur.fetchall()
             res = [{ 'name': val[0], 'description': val[1] } for val in rows]
-            return res
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
         finally:
             cur.close()
+
+        return res
 
         #return [key for key in self.config['fdw_list'].keys()]
 
@@ -51,13 +52,13 @@ class FDW:
             cur.execute(query)
             rows = cur.fetchall()
             res = [{ 'server_name': val[0], 'fdw_name': val[1] } for val in rows]
-            return res
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
         finally:
             cur.close()
 
+        return res
 
     def init_servers(self):
         """Get list of enabled extensions"""
