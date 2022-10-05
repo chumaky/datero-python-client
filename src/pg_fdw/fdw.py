@@ -28,7 +28,7 @@ class FDW:
             res = [{ 'name': val[0], 'description': val[1] } for val in rows]
         except psycopg2.Error as e:
             self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
         finally:
             cur.close()
 
@@ -54,7 +54,7 @@ class FDW:
             res = [{ 'server_name': val[0], 'fdw_name': val[1] } for val in rows]
         except psycopg2.Error as e:
             self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
         finally:
             cur.close()
 
