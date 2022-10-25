@@ -12,7 +12,8 @@ def parse_params() -> argparse.Namespace:
     parser.add_argument('-r', '--run', action='store_true', help='process config file and create foreign servers')
     parser.add_argument('-s', '--servers', action='store_true', help='print list of created foreign servers')
     parser.add_argument('-f', '--fdw-list', action='store_true', help='print list of available FDWs')
-    parser.add_argument('-v', '--version', action='version', version='0.0.2')
+    parser.add_argument('-p', '--health-check', action='store_true', help='run health check')
+    parser.add_argument('-v', '--version', action='version', version='0.0.6')
 
     if len(sys.argv) < 2:
         parser.print_help()
@@ -38,6 +39,9 @@ def main():
         res = app.server_list
         for row in res:
             print(f"Name: {row['server_name']}, Description: {row['fdw_name']}")
+    elif args.health_check:
+        res = app.health_check
+        print(f"Status: {res['status']}, Version: {res['version']}, Heartbeat: {res['heartbeat']}")
 
 
 if __name__ == "__main__":

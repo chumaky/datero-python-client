@@ -3,6 +3,7 @@
 from .config import ConfigParser
 from .extension import Extension
 from .fdw import FDW
+from .admin import Admin
 
 class App:
     """main API interface"""
@@ -12,6 +13,7 @@ class App:
         self.cp = ConfigParser(config_file)
         self.ext = Extension(self.config)
         self.fdw = FDW(self.config)
+        self.admin = Admin(self.config)
 
     @property
     def config(self):
@@ -37,6 +39,11 @@ class App:
     def server_list(self):
         """Return list of available foreign servers"""
         return self.fdw.server_list()
+
+    @property
+    def health_check(self):
+        """Return health check status"""
+        return self.admin.healthcheck()
 
 
     def run(self):
