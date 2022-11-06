@@ -2,6 +2,7 @@
 from typing import Dict
 import psycopg2
 
+from . import CONNECTION
 from .connection import Connection
 
 class Admin:
@@ -16,7 +17,7 @@ class Admin:
         cur = None
         try:
             query = "SELECT 'Connected' AS status, '1.0.0' AS version, now() AS heartbeat"
-            conn = Connection(self.config['postgres'])
+            conn = Connection(self.config[CONNECTION])
             cur = conn.cursor
             cur.execute(query)
             row = cur.fetchone()

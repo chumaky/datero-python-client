@@ -5,15 +5,22 @@ from .extension import Extension
 from .fdw import FDW
 from .admin import Admin
 
+from .connection import Connection
+from . import CONNECTION
+
 class App:
     """main API interface"""
 
     def __init__(self, config_file: str = None):
         self.config_file = config_file
         self.cp = ConfigParser(config_file)
+
         self.ext = Extension(self.config)
         self.fdw = FDW(self.config)
         self.admin = Admin(self.config)
+
+        self.conn = Connection(self.config[CONNECTION])
+
 
     @property
     def config(self):

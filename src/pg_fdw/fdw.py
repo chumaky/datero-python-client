@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 import psycopg2
 from psycopg2 import sql
 
+from . import CONNECTION
 from .connection import Connection
 
 class FDW:
@@ -10,7 +11,7 @@ class FDW:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.conn = Connection(self.config['postgres'])
+        self.conn = Connection(self.config[CONNECTION])
 
     @property
     def servers(self):

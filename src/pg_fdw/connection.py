@@ -1,6 +1,7 @@
 """Singleton class for postgres database connection"""
 from typing import Dict
 import psycopg2
+from psycopg2.extras import DictCursor, RealDictCursor
 
 class Connection:
     """Parsing config files"""
@@ -30,7 +31,6 @@ class Connection:
 
     def init_connection(self):
         """Instantiating connection from config credentials"""
-        #print(self.config['postgres'])
         return psycopg2.connect(
             dbname=self.config['database'],
             user=self.config['username'],
@@ -44,6 +44,18 @@ class Connection:
     def cursor(self):
         """Create new cursor over connection"""
         return self._conn.cursor()
+
+
+    @property
+    def dcursor(self):
+        """Cursor which returns rows as dicts"""
+        return self._conn.cursor(cursor_factory=DictCursor)
+
+
+    @property
+    def rdcursor(self):
+        """Cursor which returns rows as real dicts (without indexed access)"""
+        return self._conn.cursor(cursor_factory=RealDictCursor)
 
     def commit(self):
         """Wrapper method for commit"""

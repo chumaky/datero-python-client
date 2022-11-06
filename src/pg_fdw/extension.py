@@ -2,6 +2,7 @@
 from typing import Dict
 import psycopg2
 
+from . import CONNECTION
 from .connection import Connection
 
 class Extension:
@@ -9,7 +10,7 @@ class Extension:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.conn = Connection(self.config['postgres'])
+        self.conn = Connection(self.config[CONNECTION])
 
     @property
     def fdw_list(self):
