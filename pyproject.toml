@@ -10,7 +10,7 @@ config = ["*.yaml"]
 
 [project]
 name = "pg_fdw"
-version = "0.0.6"
+version = "0.0.7"
 authors = [
   { name="Chumaky IT", email="info@chumaky.team" },
 ]
