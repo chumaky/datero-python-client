@@ -6,7 +6,7 @@ from psycopg2.extras import DictCursor, RealDictCursor
 class Connection:
     """Parsing config files"""
 
-    def __new__(cls, *args):
+    def __new__(cls, *_):
         """Connection object is singleton"""
         if not hasattr(cls, 'instance'):
             cls.instance = super(Connection, cls).__new__(cls)

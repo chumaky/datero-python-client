@@ -21,15 +21,15 @@ class ConfigParser:
         return cls.instance
 
 
-    def __init__(self, config_file: str = USER_CONFIG) -> None:
+    def __init__(self, config_file: str) -> None:
         if self._initialized:
             return
 
         self.default_config_file = \
-            os.path.join(os.path.dirname(__file__), '..', CONFIG_DIR, DEFAULT_CONFIG)
+            os.path.join(os.path.dirname(__file__), CONFIG_DIR, DEFAULT_CONFIG)
         self.user_config_file = \
             config_file if config_file is not None else \
-            os.path.join(os.path.dirname(__file__), '..', CONFIG_DIR, USER_CONFIG)
+            os.path.join(os.path.dirname(__file__), CONFIG_DIR, USER_CONFIG)
         self.default_params = {}
         self.user_params = {}
         self.params = {}

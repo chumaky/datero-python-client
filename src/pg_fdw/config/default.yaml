@@ -1,0 +1,139 @@
+# validation schema: schema.yaml
+
+postgres:
+  hostname: localhost
+  port: 5432
+  database: postgres
+  username: postgres
+  password: postgres
+
+
+fdw_list:
+  file_fdw:
+    enabled: true
+    schema_name: file_fdw
+  mongo_fdw:
+    enabled: true
+    schema_name: mongo_fdw
+  mysql_fdw:
+    enabled: true
+    schema_name: mysql_fdw
+  oracle_fdw:
+    enabled: true
+    schema_name: oracle_fdw
+  postgres_fdw:
+    enabled: true
+    schema_name: postgres_fdw
+  sqlite_fdw:
+    enabled: true
+    schema_name: sqlite_fdw
+  tds_fdw:
+    enabled: true
+    schema_name: mssql
+
+
+# specific FDW options
+# fdw_name:
+#   foreign_server:
+#     option:
+#       default:
+#       description:
+#   user_mapping:
+#     option:
+#       default:
+#       description:
+#   import_foreign_schema:
+#     option:
+#       default:
+#       description:
+#   advanced:
+#     foreign_server:
+#       option:
+#         default:
+#         description:
+#     user_mapping:
+#       option:
+#         default:
+#         description:
+#     import_foreign_schema:
+#       option:
+#         default:
+#         description:
+# TODO: add support for all available options for each FDW
+fdw_options:
+  file_fdw:
+    filename:
+    program:
+
+  mongo_fdw:
+    address:
+    port: 27017
+    authentication_database: admin
+
+  mysql_fdw:
+    foreign_server:
+      host:
+        default: 127.0.0.1
+        description: Address or hostname of the MySQL server. Defaults to 127.0.0.1
+      port:
+        default: 3306
+        description: Port number of the MySQL server. Defaults to 3306
+
+    user_mapping:
+      username:
+        default:
+        description: Username to use when connecting to MySQL.
+      password:
+        default:
+        description: Password to authenticate to the MySQL server with.
+
+    import_foreign_schema:
+      import_default:
+        default: false
+        description: >
+          This option controls whether column DEFAULT expressions are included in the definitions
+          of foreign tables imported from a foreign server. The default is false.
+      import_not_null:
+        default: true
+        description: >
+          This option controls whether column NOT NULL constraints are included in the definitions
+          of foreign tables imported from a foreign server. The default is true.
+      import_enum_as_text:
+        default: false
+        description: >
+          This option can be used to map MySQL ENUM type to TEXT type in the definitions
+          of foreign tables, otherwise emit a warning for type to be created. The default is false.
+      import_generated:
+        default: true
+        description: >
+          This option controls whether GENERATED column expressions are included in the definitions
+          of foreign tables imported from a foreign server or not. The default is true.
+          The IMPORT will fail altogether if an imported generated expression
+          uses a function or operator that does not exist on PostgreSQL.
+
+    advanced:
+      foreign_server:
+        secure_auth:
+          default: true
+          description: Enable or disable secure authentication. Default is true
+        init_command:
+          default:
+          description: SQL statement to execute when connecting to the MySQL server.
+        reconnect:
+          default: false
+          description: >
+            Enable or disable automatic reconnection to the MySQL server
+            if the existing connection is found to have been lost. Default is false.
+
+
+
+  oracle_fdw:
+    dbserver:
+
+  sqlite_fdw:
+    database:
+
+  tds_fdw:
+    servername:
+    port: 1433
+    database:

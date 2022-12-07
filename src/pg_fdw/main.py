@@ -13,7 +13,7 @@ def parse_params() -> argparse.Namespace:
     parser.add_argument('-s', '--servers', action='store_true', help='print list of created foreign servers')
     parser.add_argument('-f', '--fdw-list', action='store_true', help='print list of available FDWs')
     parser.add_argument('-p', '--health-check', action='store_true', help='run health check')
-    parser.add_argument('-v', '--version', action='version', version='0.0.6')
+    parser.add_argument('-v', '--version', action='version', version='0.0.7')
 
     if len(sys.argv) < 2:
         parser.print_help()
