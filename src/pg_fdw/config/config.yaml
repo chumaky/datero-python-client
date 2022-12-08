@@ -11,7 +11,7 @@ servers:
 # servers:
 #   server1:
 #     fdw_name: mongo_fdw
-#     options:
+#     foreign_server:
 #     user_mapping:
 #       username: some_user
 #       password: password
@@ -20,7 +20,7 @@ servers:
 #
 #   serverN:
 #     fdw_name: mysql_fdw
-#     options:
+#     foreign_server:
 #       host: hostname
 #       port: 3306
 #     user_mapping:

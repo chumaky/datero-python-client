@@ -72,7 +72,7 @@ class FDW:
                     'FOREIGN DATA WRAPPER {fdw_name} ' \
                     'OPTIONS ({options})'
 
-                options, values = self._options_and_values(props['options'])
+                options, values = self._options_and_values(props['foreign_server'])
 
                 query = sql.SQL(stmt).format(
                     server=sql.Identifier(server),

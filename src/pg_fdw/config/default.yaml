@@ -32,43 +32,40 @@ fdw_list:
     schema_name: mssql
 
 
-# specific FDW options
-# fdw_name:
+# FDW options template
+#
+# <option> =
+#   option:
+#     default:
+#     description:
+#
+# <categories> =
 #   foreign_server:
-#     option:
-#       default:
-#       description:
+#     <option>
 #   user_mapping:
-#     option:
-#       default:
-#       description:
+#     <option>
+#   foreign_table:
+#     <option>
 #   import_foreign_schema:
-#     option:
-#       default:
-#       description:
+#     <option>
+#
+# fdw_name:
+#   <categories>
 #   advanced:
-#     foreign_server:
-#       option:
-#         default:
-#         description:
-#     user_mapping:
-#       option:
-#         default:
-#         description:
-#     import_foreign_schema:
-#       option:
-#         default:
-#         description:
-# TODO: add support for all available options for each FDW
+#     <categories>
+
+# FDW options
 fdw_options:
   file_fdw:
-    filename:
-    program:
+    foreign_server:
+      filename:
+      program:
 
   mongo_fdw:
-    address:
-    port: 27017
-    authentication_database: admin
+    foreign_server:
+      address:
+      port: 27017
+      authentication_database: admin
 
   mysql_fdw:
     foreign_server:
@@ -128,12 +125,15 @@ fdw_options:
 
 
   oracle_fdw:
-    dbserver:
+    foreign_server:
+      dbserver:
 
   sqlite_fdw:
-    database:
+    foreign_server:
+      database:
 
   tds_fdw:
-    servername:
-    port: 1433
-    database:
+    foreign_server:
+      servername:
+      port: 1433
+      database:
