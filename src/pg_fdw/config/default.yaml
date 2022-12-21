@@ -12,24 +12,38 @@ fdw_list:
   file_fdw:
     enabled: true
     schema_name: file_fdw
+    name: File Access
+    icon: file.svg
   mongo_fdw:
     enabled: true
     schema_name: mongo_fdw
+    name: MongoDB
+    icon: mongodb.svg
   mysql_fdw:
     enabled: true
     schema_name: mysql_fdw
+    name: MySQL
+    icon: mysql.svg
   oracle_fdw:
     enabled: true
     schema_name: oracle_fdw
+    name: Oracle
+    icon: oracle.svg
   postgres_fdw:
     enabled: true
     schema_name: postgres_fdw
+    name: Postgres
+    icon: postgresql.svg
   sqlite_fdw:
     enabled: true
     schema_name: sqlite_fdw
+    name: SQLite
+    icon: sqlite.svg
   tds_fdw:
     enabled: true
-    schema_name: mssql
+    schema_name: tds_fdw
+    name: SQL Server
+    icon: mssql.svg
 
 
 # FDW options template
