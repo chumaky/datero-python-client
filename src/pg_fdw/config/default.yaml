@@ -52,6 +52,7 @@ fdw_list:
 #   option:
 #     default:
 #     description:
+#     position:
 #
 # <categories> =
 #   foreign_server:
@@ -86,17 +87,21 @@ fdw_options:
       host:
         default: 127.0.0.1
         description: Address or hostname of the MySQL server. Defaults to 127.0.0.1
+        position: 1
       port:
         default: 3306
         description: Port number of the MySQL server. Defaults to 3306
+        position: 2
 
     user_mapping:
       username:
         default:
         description: Username to use when connecting to MySQL.
+        position: 1
       password:
         default:
         description: Password to authenticate to the MySQL server with.
+        position: 2
 
     import_foreign_schema:
       import_default:
@@ -104,16 +109,19 @@ fdw_options:
         description: >
           This option controls whether column DEFAULT expressions are included in the definitions
           of foreign tables imported from a foreign server. The default is false.
+        position: 1
       import_not_null:
         default: true
         description: >
           This option controls whether column NOT NULL constraints are included in the definitions
           of foreign tables imported from a foreign server. The default is true.
+        position: 2
       import_enum_as_text:
         default: false
         description: >
           This option can be used to map MySQL ENUM type to TEXT type in the definitions
           of foreign tables, otherwise emit a warning for type to be created. The default is false.
+        position: 3
       import_generated:
         default: true
         description: >
@@ -121,21 +129,24 @@ fdw_options:
           of foreign tables imported from a foreign server or not. The default is true.
           The IMPORT will fail altogether if an imported generated expression
           uses a function or operator that does not exist on PostgreSQL.
+        position: 4
 
     advanced:
       foreign_server:
         secure_auth:
           default: true
           description: Enable or disable secure authentication. Default is true
+          position: 1
         init_command:
           default:
           description: SQL statement to execute when connecting to the MySQL server.
+          position: 2
         reconnect:
           default: false
           description: >
             Enable or disable automatic reconnection to the MySQL server
             if the existing connection is found to have been lost. Default is false.
-
+          position: 3
 
 
   oracle_fdw:
@@ -151,3 +162,56 @@ fdw_options:
       servername:
       port: 1433
       database:
+
+  postgres_fdw:
+    foreign_server:
+      host:
+        default:
+        description: Name of host to connect to.
+        position: 1
+      port:
+        default:
+        description: Port number to connect to at the server host.
+        position: 2
+      dbname:
+        default:
+        description: The database name. Defaults to be the same as the user name.
+        position: 3
+
+    user_mapping:
+      user:
+        default:
+        description: >
+          PostgreSQL user name to connect as.
+          Defaults to be the same as the operating system name of the user running the application.
+        position: 1
+      password:
+        default:
+        description: Password to be used if the server demands password authentication.
+        position: 2
+
+    import_foreign_schema:
+      import_collate:
+        default: true
+        description: >
+          This option controls whether column COLLATE options are included in the definitions
+          of foreign tables imported from a foreign server.
+        position: 1
+      import_default:
+        default: false
+        description: >
+          This option controls whether column DEFAULT expressions are included in the definitions
+          of foreign tables imported from a foreign server.
+        position: 2
+      import_generated:
+        default: true
+        description: >
+          This option controls whether column GENERATED expressions are included in the definitions
+          of foreign tables imported from a foreign server.
+        position: 3
+      import_not_null:
+        default: true
+        description: >
+          This option controls whether column NOT NULL constraints are included in the definitions
+          of foreign tables imported from a foreign server.
+        position: 4
