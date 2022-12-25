@@ -9,41 +9,52 @@ postgres:
 
 
 fdw_list:
-  file_fdw:
-    enabled: true
-    schema_name: file_fdw
-    name: File Access
-    icon: file.svg
-  mongo_fdw:
-    enabled: true
-    schema_name: mongo_fdw
-    name: MongoDB
-    icon: mongodb.svg
   mysql_fdw:
     enabled: true
     schema_name: mysql_fdw
     name: MySQL
     icon: mysql.svg
-  oracle_fdw:
-    enabled: true
-    schema_name: oracle_fdw
-    name: Oracle
-    icon: oracle.svg
+    position: 1
   postgres_fdw:
     enabled: true
     schema_name: postgres_fdw
     name: Postgres
     icon: postgresql.svg
-  sqlite_fdw:
+    position: 2
+  mongo_fdw:
     enabled: true
-    schema_name: sqlite_fdw
-    name: SQLite
-    icon: sqlite.svg
+    schema_name: mongo_fdw
+    name: MongoDB
+    icon: mongodb.svg
+    position: 3
+  oracle_fdw:
+    enabled: true
+    schema_name: oracle_fdw
+    name: Oracle
+    icon: oracle.svg
+    position: 4
   tds_fdw:
     enabled: true
     schema_name: tds_fdw
     name: SQL Server
     icon: mssql.svg
+    position: 5
+  sqlite_fdw:
+    enabled: true
+    schema_name: sqlite_fdw
+    name: SQLite
+    icon: sqlite.svg
+    position: 6
+  file_fdw:
+    enabled: true
+    schema_name: file_fdw
+    name: File Access
+    description: >
+      Access data files in the server's file system, or to execute programs on the server and read their output.
+      The data file or program output must be in a format that can be read by Postgres' "COPY FROM" command.
+      Access to data files is currently read-only.
+    icon: file.svg
+    position: 7
 
 
 # FDW options template
@@ -72,64 +83,120 @@ fdw_list:
 # FDW options
 fdw_options:
   file_fdw:
-    foreign_server:
+    create_foreign_table:
+      table_name:
+        description: Table name (optionally schema-qualified) to store file data.
+        position: 1
       filename:
+        description: The path name of the input file. File name can be an absolute or relative path.
+        position: 2
       program:
+        description: A command to execute. The input is read from standard output of the command.
+        position: 3
+
 
   mongo_fdw:
     foreign_server:
       address:
-      port: 27017
-      authentication_database: admin
+        default: 127.0.0.1
+        description: Address or hostname of the MongoDB server. Defaults to 127.0.0.1
+        position: 1
+      port:
+        default: 27017
+        description: Port number of the MongoDB server. Defaults to 27017.
+        position: 2
+      authentication_database:
+        description: >
+          Database against which user will be authenticated against.
+          Only valid with password based authentication.
+        position: 3
+
+    user_mapping:
+      username:
+        description: Username to use when connecting to MongoDB.
+        position: 1
+      password:
+        description: Password to authenticate to the MongoDB server.
+        position: 2
+
+    create_foreign_table:
+      database:
+        default: test
+        description: Name of the MongoDB database to query. Defaults to test.
+        position: 1
+      collection:
+        default: test
+        description: >
+          Name of the MongoDB collection to query.
+          Defaults to the foreign table name used in the relevant CREATE command.
+        position: 2
+
+    advanced:
+      create_foreign_table:
+        enable_join_pushdown:
+          default: true
+          description: >
+            Similar to the server-level option, but can be configured at table level as well.
+            Default is true.
+          position: 1
+        enable_aggregate_pushdown:
+          default: true
+          description: >
+            Similar to the server-level option, but can be configured at table level as well.
+            Default is true.
+          position: 2
+
 
   mysql_fdw:
     foreign_server:
       host:
         default: 127.0.0.1
         description: Address or hostname of the MySQL server. Defaults to 127.0.0.1
+        required: true
         position: 1
       port:
         default: 3306
         description: Port number of the MySQL server. Defaults to 3306
+        required: true
         position: 2
 
     user_mapping:
       username:
-        default:
+        default: root
         description: Username to use when connecting to MySQL.
+        required: true
         position: 1
       password:
-        default:
-        description: Password to authenticate to the MySQL server with.
+        default: root
+        description: >
+          Password to authenticate to the MySQL server with.
+          Defaults to be the same as the Username.
+        required: true
         position: 2
 
     import_foreign_schema:
-      import_default:
-        default: false
-        description: >
-          This option controls whether column DEFAULT expressions are included in the definitions
-          of foreign tables imported from a foreign server. The default is false.
+      dbname:
+        description: Name of the MySQL database (schema) to import. This is a mandatory option.
+        required: true
         position: 1
-      import_not_null:
-        default: true
-        description: >
-          This option controls whether column NOT NULL constraints are included in the definitions
-          of foreign tables imported from a foreign server. The default is true.
+      local_schema:
+        description: The schema in which the imported foreign tables will be created.
+        required: true
         position: 2
-      import_enum_as_text:
-        default: false
-        description: >
-          This option can be used to map MySQL ENUM type to TEXT type in the definitions
-          of foreign tables, otherwise emit a warning for type to be created. The default is false.
+
+    create_foreign_table:
+      name:
+        description: Name of the created foreign table.
+        required: true
+        position: 1
+      dbname:
+        description: Name of the MySQL database to query. This is a mandatory option.
+        required: true
+        position: 2
+      table_name:
+        description: Name of the MySQL table, default is the same as foreign table.
+        required: false
         position: 3
-      import_generated:
-        default: true
-        description: >
-          This option controls whether GENERATED column expressions are included in the definitions
-          of foreign tables imported from a foreign server or not. The default is true.
-          The IMPORT will fail altogether if an imported generated expression
-          uses a function or operator that does not exist on PostgreSQL.
-        position: 4
 
     advanced:
       foreign_server:
@@ -147,6 +214,62 @@ fdw_options:
             Enable or disable automatic reconnection to the MySQL server
             if the existing connection is found to have been lost. Default is false.
           position: 3
+        fetch_size:
+          default: 100
+          description: >
+            This option specifies the number of rows mysql_fdw should get in each fetch operation.
+            It can be specified for a foreign table or a foreign server.
+            The option specified on a table overrides an option specified for the server.
+            The default is 100.
+          required: true
+          position: 4
+
+      import_foreign_schema:
+        import_default:
+          default: false
+          description: >
+            This option controls whether column DEFAULT expressions are included in the definitions
+            of foreign tables imported from a foreign server. The default is false.
+          required: false
+          position: 1
+        import_not_null:
+          default: true
+          description: >
+            This option controls whether column NOT NULL constraints are included in the definitions
+            of foreign tables imported from a foreign server. The default is true.
+          required: false
+          position: 2
+        import_enum_as_text:
+          default: false
+          description: >
+            This option can be used to map MySQL ENUM type to TEXT type in the definitions
+            of foreign tables, otherwise emit a warning for type to be created. The default is false.
+          required: false
+          position: 3
+        import_generated:
+          default: true
+          description: >
+            This option controls whether GENERATED column expressions are included in the definitions
+            of foreign tables imported from a foreign server or not. The default is true.
+            The IMPORT will fail altogether if an imported generated expression
+            uses a function or operator that does not exist on PostgreSQL.
+          required: false
+          position: 4
+
+      create_foreign_table:
+        max_blob_size:
+          description: Max blob size to read without truncation.
+          required: true
+          position: 1
+        fetch_size:
+          default: 100
+          description: >
+            This option specifies the number of rows mysql_fdw should get in each fetch operation.
+            It can be specified for a foreign table or a foreign server.
+            The option specified on a table overrides an option specified for the server.
+            The default is 100.
+          required: true
+          position: 2
 
 
   oracle_fdw:
@@ -166,52 +289,70 @@ fdw_options:
   postgres_fdw:
     foreign_server:
       host:
-        default:
-        description: Name of host to connect to.
+        default: 127.0.0.1
+        description: Address or hostname of the PostgreSQL server. Defaults to 127.0.0.1
+        required: true
         position: 1
       port:
-        default:
-        description: Port number to connect to at the server host.
+        default: 5432
+        description: Port number of the PostgreSQL server. Defaults to 5432
+        required: true
         position: 2
       dbname:
-        default:
+        default: postgres
         description: The database name. Defaults to be the same as the user name.
+        required: true
         position: 3
 
     user_mapping:
       user:
-        default:
-        description: >
-          PostgreSQL user name to connect as.
-          Defaults to be the same as the operating system name of the user running the application.
+        default: postgres
+        description: PostgreSQL user name to connect as. Defaults to postgres.
+        required: true
         position: 1
       password:
-        default:
-        description: Password to be used if the server demands password authentication.
+        default: postgres
+        description: Password to be used if the server demands password authentication. Defaults to user name.
+        required: true
         position: 2
 
     import_foreign_schema:
-      import_collate:
-        default: true
-        description: >
-          This option controls whether column COLLATE options are included in the definitions
-          of foreign tables imported from a foreign server.
+      remote_schema:
+        description: The remote schema in PostgreSQL server to import from.
+        required: true
         position: 1
-      import_default:
-        default: false
-        description: >
-          This option controls whether column DEFAULT expressions are included in the definitions
-          of foreign tables imported from a foreign server.
+      local_schema:
+        description: The schema in which the imported foreign tables will be created.
+        required: true
         position: 2
-      import_generated:
-        default: true
-        description: >
-          This option controls whether column GENERATED expressions are included in the definitions
-          of foreign tables imported from a foreign server.
-        position: 3
-      import_not_null:
-        default: true
-        description: >
-          This option controls whether column NOT NULL constraints are included in the definitions
-          of foreign tables imported from a foreign server.
-        position: 4
+
+    advanced:
+      import_foreign_schema:
+        import_collate:
+          default: true
+          description: >
+            This option controls whether column COLLATE options are included in the definitions
+            of foreign tables imported from a foreign server. The default is true.
+          required: false
+          position: 1
+        import_default:
+          default: false
+          description: >
+            This option controls whether column DEFAULT expressions are included in the definitions
+            of foreign tables imported from a foreign server. The default is false.
+          required: false
+          position: 2
+        import_generated:
+          default: true
+          description: >
+            This option controls whether column GENERATED expressions are included in the definitions
+            of foreign tables imported from a foreign server. The default is true.
+          required: false
+          position: 3
+        import_not_null:
+          default: true
+          description: >
+            This option controls whether column NOT NULL constraints are included in the definitions
+            of foreign tables imported from a foreign server. The default is true.
+          required: false
+          position: 4
