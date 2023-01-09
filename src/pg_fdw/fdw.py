@@ -34,8 +34,8 @@ class FDW:
             cur.close()
 
         return res
-
         #return [key for key in self.config['fdw_list'].keys()]
+
 
     def server_list(self):
         """Get list of foreign servers"""
@@ -60,6 +60,7 @@ class FDW:
             cur.close()
 
         return res
+
 
     def init_servers(self):
         """Get list of enabled extensions"""
@@ -86,6 +87,42 @@ class FDW:
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+        finally:
+            cur.close()
+
+
+    def create_server_by_name(self, server_name: str):
+        """Create foreign server by entry name in config file"""
+        return self.create_server_by_data(self.servers[server_name])
+
+
+    def create_server_by_data(self, data: Dict):
+        """Create foreign server from config data"""
+        try:
+            cur = self.conn.cursor
+
+            stmt = \
+                'CREATE SERVER IF NOT EXISTS {server} ' \
+                'FOREIGN DATA WRAPPER {fdw_name} ' \
+                'OPTIONS ({options})'
+
+            options, values = self._options_and_values(data['foreignServer'])
+
+            query = sql.SQL(stmt).format(
+                server=sql.Identifier(data['serverName']),
+                fdw_name=sql.Identifier(data['fdwName']),
+                options=options
+            )
+
+            cur.execute(query, values)
+            self.conn.commit()
+
+            print(f'Foreign server "{data["serverName"]}" successfully created')
+            return f'Foreign server "{data["serverName"]}" successfully created'
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
         finally:
             cur.close()
 
