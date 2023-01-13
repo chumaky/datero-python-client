@@ -102,23 +102,27 @@ class FDW:
             cur = self.conn.cursor
 
             stmt = \
-                'CREATE SERVER IF NOT EXISTS {server} ' \
+                'CREATE SERVER {server} ' \
                 'FOREIGN DATA WRAPPER {fdw_name} ' \
                 'OPTIONS ({options})'
 
-            options, values = self._options_and_values(data['foreignServer'])
+            options, values = self._options_and_values(data['options'])
 
             query = sql.SQL(stmt).format(
-                server=sql.Identifier(data['serverName']),
-                fdw_name=sql.Identifier(data['fdwName']),
+                server=sql.Identifier(data['server_name']),
+                fdw_name=sql.Identifier(data['fdw_name']),
                 options=options
             )
 
             cur.execute(query, values)
             self.conn.commit()
 
-            print(f'Foreign server "{data["serverName"]}" successfully created')
-            return f'Foreign server "{data["serverName"]}" successfully created'
+            print(f'Foreign server "{data["server_name"]}" successfully created')
+            return {
+                'status': 'success',
+                'status_code': 200,
+                'message': f'Foreign server "{data["server_name"]}" successfully created'
+            }
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
