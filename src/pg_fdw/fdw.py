@@ -117,11 +117,15 @@ class FDW:
             cur.execute(query, values)
             self.conn.commit()
 
-            print(f'Foreign server "{data["server_name"]}" successfully created')
+            if ('user_mapping' in data):
+                self.create_user_mapping_by_data(data['server_name'], data['user_mapping'])
+
+
+            msg = f'Foreign server "{data["server_name"]}" successfully created'
+            print(msg)
             return {
-                'status': 'success',
                 'status_code': 200,
-                'message': f'Foreign server "{data["server_name"]}" successfully created'
+                'message': msg
             }
         except psycopg2.Error as e:
             self.conn.rollback()
@@ -155,6 +159,40 @@ class FDW:
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+        finally:
+            cur.close()
+
+
+    def create_user_mapping_by_data(self, server: str, props: Dict):
+        """Create user mapping for a foreign server"""
+        try:
+            cur = self.conn.cursor
+
+            stmt = \
+                'CREATE USER MAPPING FOR CURRENT_USER ' \
+                'SERVER {server} ' \
+                'OPTIONS ({options})'
+
+            options, values = self._options_and_values(props)
+
+            query = sql.SQL(stmt).format(
+                server=sql.Identifier(server),
+                options=options
+            )
+
+            cur.execute(query, values)
+            self.conn.commit()
+
+            msg = f'User mapping for "{server}" foreign server successfully created'
+            print(msg)
+            return {
+                'status_code': 200,
+                'message': msg
+            }
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
         finally:
             cur.close()
 

@@ -275,16 +275,30 @@ fdw_options:
   oracle_fdw:
     foreign_server:
       dbserver:
+        description: Database server connection string
+        required: true
+        position: 1
+
 
   sqlite_fdw:
     foreign_server:
       database:
+        description: >
+          Path to the filename with SQLite database.
+          File must be reachable on the server's file system where HSQL is running on
+        required: true
+        position: 1
+
 
   tds_fdw:
     foreign_server:
       servername:
+        description: Database server hostname
+        required: true
+        position: 1
       port: 1433
       database:
+
 
   postgres_fdw:
     foreign_server:
