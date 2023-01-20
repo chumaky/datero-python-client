@@ -42,17 +42,33 @@ class FDW:
         try:
             cur = self.conn.cursor
             query = """
-                SELECT s.srvname                AS server_name
-                     , f.fdwname                AS fdw_name
-                  FROM pg_foreign_server        s
-                 INNER JOIN
-                       pg_foreign_data_wrapper  f
-                    ON f.oid = s.srvfdw
-                 ORDER BY s.srvname
+                    SELECT fs.srvname                      AS server_name
+                         , fdw.fdwname                     AS fdw_name
+                         , (
+                             SELECT json_object_agg(fso.option_name, fso.option_value)
+                               FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
+                           )                               AS options
+                         , (
+                             SELECT json_object_agg(umo.option_name, umo.option_value)
+                               FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
+                           )                               AS user_mapping
+                      FROM pg_foreign_server               fs
+                     INNER JOIN
+                           pg_foreign_data_wrapper         fdw
+                        ON fdw.oid                         = fs.srvfdw
+                     INNER JOIN
+                           pg_user_mappings                um
+                        ON um.srvname                      = fs.srvname
+                     ORDER BY fs.srvname
             """
             cur.execute(query)
             rows = cur.fetchall()
-            res = [{ 'server_name': val[0], 'fdw_name': val[1] } for val in rows]
+            res = [{
+                'server_name': val[0],
+                'fdw_name': val[1],
+                'options': val[2],
+                'user_mapping': val[3]
+            } for val in rows]
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')

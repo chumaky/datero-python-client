@@ -38,7 +38,8 @@ def main():
     elif args.servers:
         res = app.server_list
         for row in res:
-            print(f"Name: {row['server_name']}, Description: {row['fdw_name']}")
+            #print(f"Name: {row['server_name']}, Description: {row['fdw_name']}")
+            print(row)
     elif args.health_check:
         res = app.health_check
         print(f"Status: {res['status']}, Version: {res['version']}, Heartbeat: {res['heartbeat']}")
