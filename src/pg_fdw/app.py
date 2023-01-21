@@ -1,12 +1,8 @@
 """main API interface"""
 
 from .config import ConfigParser
-from .extension import Extension
-from .fdw import FDW
+from .fdw import Extension, Server, UserMapping, Schema
 from .admin import Admin
-
-from .connection import Connection
-from . import CONNECTION
 
 class App:
     """main API interface"""
@@ -15,11 +11,12 @@ class App:
         self.config_file = config_file
         self.cp = ConfigParser(config_file)
 
-        self.ext = Extension(self.config)
-        self.fdw = FDW(self.config)
         self.admin = Admin(self.config)
 
-        self.conn = Connection(self.config[CONNECTION])
+        self.extension = Extension(self.config)
+        self.server = Server(self.config)
+        self.user = UserMapping(self.config)
+        self.schema = Schema(self.config)
 
 
     @property
@@ -40,12 +37,12 @@ class App:
     @property
     def fdw_list(self):
         """Return list of available FDWs"""
-        return self.fdw.fdw_list()
+        return self.extension.fdw_list()
 
     @property
     def server_list(self):
         """Return list of available foreign servers"""
-        return self.fdw.server_list()
+        return self.server.server_list()
 
     @property
     def health_check(self):
@@ -60,8 +57,7 @@ class App:
             print('WARNING: Config file is not specified. Used default config which could only install FDW extensions')
             print('WARNING: No foreign servers will be available')
 
-        self.ext.init_extensions()
-
-        self.fdw.init_servers()
-        self.fdw.create_user_mappings()
-        self.fdw.import_foreign_schema()
+        self.extension.init_extensions()
+        self.server.init_servers()
+        self.user.create_user_mappings()
+        self.schema.import_foreign_schema()
