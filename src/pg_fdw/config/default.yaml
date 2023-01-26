@@ -86,6 +86,7 @@ fdw_options:
     create_foreign_table:
       table_name:
         description: Table name (optionally schema-qualified) to store file data.
+        required: true
         position: 1
       filename:
         description: The path name of the input file. File name can be an absolute or relative path.
@@ -100,23 +101,28 @@ fdw_options:
       address:
         default: 127.0.0.1
         description: Address or hostname of the MongoDB server. Defaults to 127.0.0.1
+        required: true
         position: 1
       port:
         default: 27017
         description: Port number of the MongoDB server. Defaults to 27017.
+        required: true
         position: 2
       authentication_database:
         description: >
           Database against which user will be authenticated against.
           Only valid with password based authentication.
+        required: true
         position: 3
 
     user_mapping:
       username:
         description: Username to use when connecting to MongoDB.
+        required: true
         position: 1
       password:
         description: Password to authenticate to the MongoDB server.
+        required: true
         position: 2
 
     create_foreign_table:
@@ -296,8 +302,15 @@ fdw_options:
         description: Database server hostname
         required: true
         position: 1
-      port: 1433
+      port:
+        default: 1433
+        description: Database port number
+        required: true
+        position: 2
       database:
+        description: Database name
+        required: true
+        position: 3
 
 
   postgres_fdw:

@@ -43,7 +43,7 @@ class Server:
                  INNER JOIN
                        pg_foreign_data_wrapper         fdw
                     ON fdw.oid                         = fs.srvfdw
-                 INNER JOIN
+                  LEFT JOIN
                        pg_user_mappings                um
                     ON um.srvname                      = fs.srvname
                  ORDER BY fs.srvname
@@ -111,27 +111,62 @@ class Server:
         try:
             cur = self.conn.cursor
 
-            stmt = \
-                'CREATE SERVER {server} ' \
-                'FOREIGN DATA WRAPPER {fdw_name} ' \
-                'OPTIONS ({options})'
+            stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
 
-            options, values = options_and_values(data['options'])
+            key = 'options'
+            if key in data and len(data[key]) > 0:
+                stmt += ' OPTIONS ({options})'
+                options, values = options_and_values(data[key])
 
-            query = sql.SQL(stmt).format(
-                server=sql.Identifier(data['server_name']),
-                fdw_name=sql.Identifier(data['fdw_name']),
-                options=options
-            )
+                query = sql.SQL(stmt).format(
+                    server=sql.Identifier(data['server_name']),
+                    fdw_name=sql.Identifier(data['fdw_name']),
+                    options=options
+                )
+                cur.execute(query, values)
+            else:
+                query = sql.SQL(stmt).format(
+                    server=sql.Identifier(data['server_name']),
+                    fdw_name=sql.Identifier(data['fdw_name'])
+                )
+                cur.execute(query)
 
-            cur.execute(query, values)
             self.conn.commit()
 
-            if 'user_mapping' in data:
+            key = 'user_mapping'
+            if key in data and len(data[key]) > 0:
                 self.user_mapping.create_user_mapping_by_data(
                     data['server_name'],
                     data['user_mapping']
                 )
+
+            # TODO: create default schema for the foreign server
+            # within this schema create foreign table to fetch the list of schemas that could be imported
+            # this functionality should be triggered only for FDWs which support foreign schema import
+            #
+            # SQL (MYSQL)
+            # create foreign table schema_list (schema_name text) server mysql options (dbname 'information_schema', table_name 'schemata');
+            # select * from schema_list where schema_name not in ('information_schema', 'performance_schema');
+            #
+            # create foreign table table_list (table_schema text, table_name text, table_type text) server mysql options (dbname 'information_schema', table_name 'tables');
+            # select * from table_list where table_schema not in ('information_schema', 'performance_schema') and table_type in ('BASE TABLE', 'VIEW');
+            #
+            # postgres=# \d public.*
+            #                 Foreign table "public.schema_list"
+            #    Column    | Type | Collation | Nullable | Default | FDW options
+            # -------------+------+-----------+----------+---------+-------------
+            #  schema_name | text |           |          |         |
+            # Server: mysql
+            # FDW options: (dbname 'information_schema', table_name 'schemata')
+            #
+            #                  Foreign table "public.table_list"
+            #     Column    | Type | Collation | Nullable | Default | FDW options
+            # --------------+------+-----------+----------+---------+-------------
+            #  table_schema | text |           |          |         |
+            #  table_name   | text |           |          |         |
+            #  table_type   | text |           |          |         |
+            # Server: mysql
+            # FDW options: (dbname 'information_schema', table_name 'tables')
 
 
             msg = f'Foreign server "{data["server_name"]}" successfully created'
@@ -146,4 +181,3 @@ class Server:
             raise e
         finally:
             cur.close()
-
