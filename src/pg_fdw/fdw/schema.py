@@ -49,21 +49,12 @@ class Schema:
                 stmt = \
                     'IMPORT FOREIGN SCHEMA {remote_schema} ' \
                     'FROM SERVER {server} ' \
-                    'INTO {local_schema} '
+                    'INTO {local_schema}'
 
-                # IMPORT FOREIGN SCHEMA doesn't accept an empty OPTIONS () clause
-                # hence we need to process separately cases with and without any options specified
-                if 'options' not in conf:
-                    query = sql.SQL(stmt).format(
-                        remote_schema=sql.Identifier(remote_schema),
-                        server=sql.Identifier(server),
-                        local_schema=sql.Identifier(local_schema),
-                    )
-                    cur.execute(query)
-                else:
-                    stmt += 'OPTIONS({options})'
-
-                    options, values = options_and_values(conf['options'])
+                key = 'options'
+                if key in conf and len(conf[key]) > 0:
+                    stmt += ' OPTIONS({options})'
+                    options, values = options_and_values(conf[key])
 
                     query = sql.SQL(stmt).format(
                         remote_schema=sql.Identifier(remote_schema),
@@ -72,6 +63,13 @@ class Schema:
                         options=options
                     )
                     cur.execute(query, values)
+                else:
+                    query = sql.SQL(stmt).format(
+                        remote_schema=sql.Identifier(remote_schema),
+                        server=sql.Identifier(server),
+                        local_schema=sql.Identifier(local_schema),
+                    )
+                    cur.execute(query)
 
                 self.conn.commit()
                 print(f'Foreign schema "{remote_schema}" from server "{server}" successfully imported into "{local_schema}"')
