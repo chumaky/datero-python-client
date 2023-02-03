@@ -21,7 +21,7 @@ class UserMapping:
         return self.config['servers'] if 'servers' in self.config else {}
 
 
-    def create_user_mappings(self):
+    def init_user_mappings(self):
         """Create user mapping for a foreign servers"""
         try:
             cur = self.conn.cursor
@@ -49,7 +49,7 @@ class UserMapping:
             cur.close()
 
 
-    def create_user_mapping_by_data(self, server: str, props: Dict):
+    def create_user_mapping(self, server: str, props: Dict):
         """Create user mapping for a foreign server"""
         try:
             cur = self.conn.cursor
@@ -69,7 +69,41 @@ class UserMapping:
             cur.execute(query, values)
             self.conn.commit()
 
-            msg = f'User mapping for "{server}" foreign server successfully created'
+            msg = f'User mapping for foreign server "{server}" successfully created'
+            print(msg)
+            return {
+                'status_code': 200,
+                'message': msg
+            }
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+
+    def alter_user_mapping(self, server: str, props: Dict):
+        """Alter user mapping for a foreign server"""
+        try:
+            cur = self.conn.cursor
+
+            stmt = \
+                'ALTER USER MAPPING FOR CURRENT_USER ' \
+                'SERVER {server} ' \
+                'OPTIONS ({options})'
+
+            options, values = options_and_values(props, is_update=True)
+
+            query = sql.SQL(stmt).format(
+                server=sql.Identifier(server),
+                options=options
+            )
+
+            cur.execute(query, values)
+            self.conn.commit()
+
+            msg = f'User mapping for foreign server "{server}" successfully updated'
             print(msg)
             return {
                 'status_code': 200,

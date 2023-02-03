@@ -59,5 +59,5 @@ class App:
 
         self.extension.init_extensions()
         self.server.init_servers()
-        self.user.create_user_mappings()
+        self.user.init_user_mappings()
         self.schema.import_foreign_schema()

@@ -135,7 +135,7 @@ class Server:
 
             key = 'user_mapping'
             if key in data and len(data[key]) > 0:
-                self.user_mapping.create_user_mapping_by_data(
+                self.user_mapping.create_user_mapping(
                     data['server_name'],
                     data['user_mapping']
                 )
@@ -186,61 +186,53 @@ class Server:
     def update_server(self, data: Dict):
         """Update foreign server"""
 
-        return self.rename_server(data)
+        self.rename_server(data)
 
-#       try:
-#           cur = self.conn.cursor
-#
-#           stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
-#
-#           key = 'options'
-#           if key in data and len(data[key]) > 0:
-#               stmt += ' OPTIONS ({options})'
-#               options, values = options_and_values(data[key])
-#
-#               query = sql.SQL(stmt).format(
-#                   server=sql.Identifier(data['server_name']),
-#                   fdw_name=sql.Identifier(data['fdw_name']),
-#                   options=options
-#               )
-#               cur.execute(query, values)
-#           else:
-#               query = sql.SQL(stmt).format(
-#                   server=sql.Identifier(data['server_name']),
-#                   fdw_name=sql.Identifier(data['fdw_name'])
-#               )
-#               cur.execute(query)
-#
-#           self.conn.commit()
-#
-#           key = 'user_mapping'
-#           if key in data and len(data[key]) > 0:
-#               self.user_mapping.create_user_mapping_by_data(
-#                   data['server_name'],
-#                   data['user_mapping']
-#               )
-#
-#
-#            msg = f'Foreign server "{data["server_name"]}" successfully updated'
-#            print(msg)
-#            return {
-#                'status_code': 200,
-#                'message': msg
-#            }
-#        except psycopg2.Error as e:
-#            self.conn.rollback()
-#            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-#            raise e
-#        finally:
-#           cur.close()
+        try:
+            cur = self.conn.cursor
+
+            key = 'options'
+            if key in data and len(data[key]) > 0:
+                stmt = 'ALTER SERVER {server} OPTIONS ({options})'
+                options, values = options_and_values(data[key], is_update=True)
+
+                query = sql.SQL(stmt).format(
+                    server=sql.Identifier(data['server_name']),
+                    fdw_name=sql.Identifier(data['fdw_name']),
+                    options=options
+                )
+                cur.execute(query, values)
+
+            self.conn.commit()
+
+            key = 'user_mapping'
+            if key in data and len(data[key]) > 0:
+                self.user_mapping.alter_user_mapping(
+                    data['server_name'],
+                    data['user_mapping']
+                )
+
+
+            msg = f'Foreign server "{data["server_name"]}" successfully updated'
+            print(msg)
+            return {
+                'status_code': 200,
+                'message': msg
+            }
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+           cur.close()
 
 
     def rename_server(self, data: Dict):
         """Rename foreign server"""
         try:
-            if data['server_name'] != data['old_name']:
-                cur = self.conn.cursor
+            cur = self.conn.cursor
 
+            if data['server_name'] != data['old_name']:
                 stmt = 'ALTER SERVER {old_name} RENAME TO {new_name}'
 
                 query = sql.SQL(stmt).format(
@@ -251,9 +243,9 @@ class Server:
 
                 self.conn.commit()
 
-                msg = f'Foreign server "{data["server_name"]}" successfully updated'
+                msg = f'Foreign server "{data["old_name"]}" successfully renamed to "{data["server_name"]}"'
             else:
-                msg = 'Server name is the same. Nothing to do'
+                msg = 'Server name is the same. Rename is not needed.'
 
             print(msg)
             return {
