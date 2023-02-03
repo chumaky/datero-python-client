@@ -285,6 +285,48 @@ fdw_options:
         required: true
         position: 1
 
+    user_mapping:
+      user:
+        description: >
+          The Oracle user name for the session.
+          Set this to an empty string for external authentication if you don't want to store Oracle credentials
+          in the PostgreSQL database (one simple way is to use an external password store).
+        required: true
+        position: 1
+      password:
+        description: The password for the Oracle user.
+        required: true
+        position: 2
+
+    import_foreign_schema:
+
+    create_foreign_table:
+      table:
+        description: >
+          The Oracle table name.
+          This name must be written exactly as it occurs in Oracle's system catalog, so normally consist of uppercase letters only.
+        required: true
+        position: 1
+
+    advanced:
+      foreign_server:
+        isolation_level:
+          default: serializable
+          required: false
+          description: >
+            The transaction isolation level to use at the Oracle database.
+            The value can be serializable, read_committed or read_only.
+          position: 1
+        nchar:
+          default: off
+          required: false
+          description: >
+            Setting this option to on chooses a more expensive character conversion on the Oracle side.
+            This is required if you are using a single-byte Oracle database character set,
+            but have NCHAR or NVARCHAR2 columns containing contain characters
+            that cannot be represented in the database character set.
+          position: 2
+
 
   sqlite_fdw:
     foreign_server:
@@ -294,6 +336,21 @@ fdw_options:
           File must be reachable on the server's file system where HSQL is running on
         required: true
         position: 1
+
+    import_foreign_schema:
+      # No options available. Default "public" value is used
+      # IMPORT FOREIGN SCHEMA public FROM SERVER sqlite_server INTO public;
+
+    create_foreign_table:
+      table:
+        description: SQLite table name.
+        required: true
+        position: 1
+      truncatable:
+        description: >
+          This option controls whether sqlite_fdw allows foreign tables to be truncated using the TRUNCATE command.
+        required: false
+        position: 2
 
 
   tds_fdw:
@@ -351,6 +408,20 @@ fdw_options:
       local_schema:
         description: The schema in which the imported foreign tables will be created.
         required: true
+        position: 2
+
+    create_foreign_table:
+      schema_name:
+        description: >
+          Schema name to use for the foreign table on the remote server.
+          If this option is omitted, the name of the foreign table's schema is used.
+        required: false
+        position: 1
+      table_name:
+        description: >
+          Table name to use for the foreign table on the remote server
+          If this option is omitted, the foreign table's name is used.
+        required: false
         position: 2
 
     advanced:

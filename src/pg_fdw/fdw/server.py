@@ -103,11 +103,11 @@ class Server:
 
     def create_server_by_name(self, server_name: str):
         """Create foreign server by entry name in config file"""
-        return self.create_server_by_data(self.servers[server_name])
+        return self.create_server(self.servers[server_name])
 
 
-    def create_server_by_data(self, data: Dict):
-        """Create foreign server from config data"""
+    def create_server(self, data: Dict):
+        """Create foreign server"""
         try:
             cur = self.conn.cursor
 
@@ -170,6 +170,91 @@ class Server:
 
 
             msg = f'Foreign server "{data["server_name"]}" successfully created'
+            print(msg)
+            return {
+                'status_code': 200,
+                'message': msg
+            }
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+
+    def update_server(self, data: Dict):
+        """Update foreign server"""
+
+        return self.rename_server(data)
+
+#       try:
+#           cur = self.conn.cursor
+#
+#           stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
+#
+#           key = 'options'
+#           if key in data and len(data[key]) > 0:
+#               stmt += ' OPTIONS ({options})'
+#               options, values = options_and_values(data[key])
+#
+#               query = sql.SQL(stmt).format(
+#                   server=sql.Identifier(data['server_name']),
+#                   fdw_name=sql.Identifier(data['fdw_name']),
+#                   options=options
+#               )
+#               cur.execute(query, values)
+#           else:
+#               query = sql.SQL(stmt).format(
+#                   server=sql.Identifier(data['server_name']),
+#                   fdw_name=sql.Identifier(data['fdw_name'])
+#               )
+#               cur.execute(query)
+#
+#           self.conn.commit()
+#
+#           key = 'user_mapping'
+#           if key in data and len(data[key]) > 0:
+#               self.user_mapping.create_user_mapping_by_data(
+#                   data['server_name'],
+#                   data['user_mapping']
+#               )
+#
+#
+#            msg = f'Foreign server "{data["server_name"]}" successfully updated'
+#            print(msg)
+#            return {
+#                'status_code': 200,
+#                'message': msg
+#            }
+#        except psycopg2.Error as e:
+#            self.conn.rollback()
+#            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+#            raise e
+#        finally:
+#           cur.close()
+
+
+    def rename_server(self, data: Dict):
+        """Rename foreign server"""
+        try:
+            if data['server_name'] != data['old_name']:
+                cur = self.conn.cursor
+
+                stmt = 'ALTER SERVER {old_name} RENAME TO {new_name}'
+
+                query = sql.SQL(stmt).format(
+                    old_name=sql.Identifier(data['old_name']),
+                    new_name=sql.Identifier(data['server_name'])
+                )
+                cur.execute(query)
+
+                self.conn.commit()
+
+                msg = f'Foreign server "{data["server_name"]}" successfully updated'
+            else:
+                msg = 'Server name is the same. Nothing to do'
+
             print(msg)
             return {
                 'status_code': 200,
