@@ -31,6 +31,7 @@ class Server:
             query = """
                 SELECT fs.srvname                      AS server_name
                      , fdw.fdwname                     AS fdw_name
+                     , d.description                   AS description
                      , (
                          SELECT json_object_agg(fso.option_name, fso.option_value)
                            FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
@@ -46,6 +47,11 @@ class Server:
                   LEFT JOIN
                        pg_user_mappings                um
                     ON um.srvname                      = fs.srvname
+                  LEFT JOIN
+                       pg_description                  d
+                    ON d.classoid                      = fs.tableoid
+                   AND d.objoid                        = fs.oid
+                   AND d.objsubid                      = 0
                  ORDER BY fs.srvname
             """
             cur.execute(query)
@@ -54,8 +60,9 @@ class Server:
             res = [{
                 'server_name': val[0],
                 'fdw_name': val[1],
-                'options': val[2],
-                'user_mapping': val[3]
+                'description': val[2],
+                'options': val[3],
+                'user_mapping': val[4]
             } for val in rows]
 
         except psycopg2.Error as e:
@@ -111,6 +118,7 @@ class Server:
         try:
             cur = self.conn.cursor
 
+            server_name = self.gen_server_name(data)
             stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
 
             key = 'options'
@@ -119,28 +127,34 @@ class Server:
                 options, values = options_and_values(data[key])
 
                 query = sql.SQL(stmt).format(
-                    server=sql.Identifier(data['server_name']),
+                    server=sql.Identifier(server_name),
                     fdw_name=sql.Identifier(data['fdw_name']),
                     options=options
                 )
                 cur.execute(query, values)
             else:
                 query = sql.SQL(stmt).format(
-                    server=sql.Identifier(data['server_name']),
+                    server=sql.Identifier(server_name),
                     fdw_name=sql.Identifier(data['fdw_name'])
                 )
                 cur.execute(query)
+
+            stmt = 'COMMENT ON SERVER {server} IS %s'
+            query = sql.SQL(stmt).format(
+                server=sql.Identifier(server_name)
+            )
+            cur.execute(query, (data['description'],))
 
             self.conn.commit()
 
             key = 'user_mapping'
             if key in data and len(data[key]) > 0:
                 self.user_mapping.create_user_mapping(
-                    data['server_name'],
+                    server_name,
                     data['user_mapping']
                 )
 
-            self.create_sys_views(data)
+            self.create_sys_views(server_name, data['fdw_name'])
 
             # TODO: create default schema for the foreign server
             # within this schema create foreign table to fetch the list of schemas that could be imported
@@ -170,10 +184,10 @@ class Server:
             # Server: mysql
             # FDW options: (dbname 'information_schema', table_name 'tables')
 
-            self.create_sys_views(data)
+            self.create_sys_views(server_name, data['fdw_name'])
 
 
-            msg = f'Foreign server "{data["server_name"]}" successfully created'
+            msg = f'Foreign server "{server_name}" successfully created'
             print(msg)
             return {
                 'status_code': 200,
@@ -191,7 +205,6 @@ class Server:
         """Update foreign server"""
 
         self.rename_server(data)
-        self.create_sys_views(data)
 
         try:
             cur = self.conn.cursor
@@ -232,6 +245,39 @@ class Server:
            cur.close()
 
 
+    def gen_server_name(self, data: Dict):
+        """Generate server name"""
+        try:
+            cur = self.conn.cursor
+            query = """
+                SELECT MAX(CASE
+                              WHEN fs.srvname LIKE fdw.fdwname || '\_%%'
+                              THEN REPLACE(fs.srvname, fdw.fdwname || '_', '')::INT
+                              ELSE 0
+                           END) + 1                    AS next_server_id
+                  FROM pg_foreign_server               fs
+                 INNER JOIN
+                       pg_foreign_data_wrapper         fdw
+                    ON fdw.oid                         = fs.srvfdw
+                 WHERE fdw.fdwname = %(fdw_name)s
+            """
+
+            cur.execute(query, {'fdw_name': data['fdw_name']})
+            row = cur.fetchone()
+
+            server_name = data['fdw_name'] + '_' + str(row[0])
+            print(f'New server name: {server_name}')
+
+            return server_name
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+
     def rename_server(self, data: Dict):
         """Rename foreign server"""
         try:
@@ -265,14 +311,13 @@ class Server:
             cur.close()
 
 
-    def create_sys_views(self, data: Dict):
+    def create_sys_views(self, server_name: str, fdw_name: str):
         """Supplemental views to support schema/table import operations."""
 
-        server_name = data['server_name']
         schema_list_name = f'{server_name}_schema_list'
         table_list_name = f'{server_name}_table_list'
 
-        match data['fdw_name']:
+        match fdw_name:
             case FdwType.MYSQL.value:
                 stmt = self.mysql_queries(ImportType.SCHEMA)
                 self.create_foreign_table(stmt, server_name, schema_list_name)
