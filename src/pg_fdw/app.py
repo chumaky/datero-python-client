@@ -58,6 +58,8 @@ class App:
             print('WARNING: No foreign servers will be available')
 
         self.extension.init_extensions()
-        self.server.init_servers()
-        self.user.init_user_mappings()
-        self.schema.import_foreign_schema()
+
+        # TODO: disabling until CLI will be implemented as a ready-to-use API alternative
+        #self.server.init_servers()
+        #self.user.init_user_mappings()
+        #self.schema.import_foreign_schema()

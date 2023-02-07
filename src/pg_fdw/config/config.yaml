@@ -10,8 +10,9 @@ servers:
 # Example: foreign servers
 # servers:
 #   server1:
+#     server_name: mongo_fdw_1
 #     fdw_name: mongo_fdw
-#     foreign_server:
+#     options:
 #     user_mapping:
 #       username: some_user
 #       password: password
@@ -19,8 +20,9 @@ servers:
 #   ...
 #
 #   serverN:
+#     server_name: mysql_fdw_1
 #     fdw_name: mysql_fdw
-#     foreign_server:
+#     options:
 #       host: hostname
 #       port: 3306
 #     user_mapping:
