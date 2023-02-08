@@ -52,7 +52,7 @@ class Server:
                     ON d.classoid                      = fs.tableoid
                    AND d.objoid                        = fs.oid
                    AND d.objsubid                      = 0
-                 ORDER BY fs.srvname
+                 ORDER BY d.description
             """
             cur.execute(query)
             rows = cur.fetchall()
@@ -76,7 +76,8 @@ class Server:
 
     def get_server(self, server_name: str) -> Dict:
         """Get server details"""
-        return filter(lambda x: x['server_name'] == server_name, self.server_list())
+        result = list(filter(lambda x: x['server_name'] == server_name, self.server_list()))
+        return result[0] if len(result) > 0 else None
 
 
     def init_servers(self):
@@ -139,14 +140,6 @@ class Server:
                 )
                 cur.execute(query)
 
-            stmt = 'COMMENT ON SERVER {server} IS %s'
-            query = sql.SQL(stmt).format(
-                server=sql.Identifier(server_name)
-            )
-            cur.execute(query, (data['description'],))
-
-            self.conn.commit()
-
             key = 'user_mapping'
             if key in data and len(data[key]) > 0:
                 self.user_mapping.create_user_mapping(
@@ -154,7 +147,10 @@ class Server:
                     data['user_mapping']
                 )
 
+            self.set_description(server_name, data['description'])
             self.create_sys_views(server_name, data['fdw_name'])
+
+            self.conn.commit()
 
             # TODO: create default schema for the foreign server
             # within this schema create foreign table to fetch the list of schemas that could be imported
@@ -184,14 +180,12 @@ class Server:
             # Server: mysql
             # FDW options: (dbname 'information_schema', table_name 'tables')
 
-            self.create_sys_views(server_name, data['fdw_name'])
-
-
             msg = f'Foreign server "{server_name}" successfully created'
             print(msg)
             return {
                 'status_code': 200,
-                'message': msg
+                'message': msg,
+                'server': self.get_server(server_name)
             }
         except psycopg2.Error as e:
             self.conn.rollback()
@@ -204,10 +198,10 @@ class Server:
     def update_server(self, data: Dict):
         """Update foreign server"""
 
-        self.rename_server(data)
-
         try:
             cur = self.conn.cursor
+
+            self.set_description(data['server_name'], data['description'])
 
             key = 'options'
             if key in data and len(data[key]) > 0:
@@ -221,8 +215,6 @@ class Server:
                 )
                 cur.execute(query, values)
 
-            self.conn.commit()
-
             key = 'user_mapping'
             if key in data and len(data[key]) > 0:
                 self.user_mapping.alter_user_mapping(
@@ -230,12 +222,14 @@ class Server:
                     data['user_mapping']
                 )
 
+            self.conn.commit()
 
             msg = f'Foreign server "{data["server_name"]}" successfully updated'
             print(msg)
             return {
                 'status_code': 200,
-                'message': msg
+                'message': msg,
+                'server': self.get_server(data["server_name"])
             }
         except psycopg2.Error as e:
             self.conn.rollback()
@@ -250,11 +244,13 @@ class Server:
         try:
             cur = self.conn.cursor
             query = """
-                SELECT MAX(CASE
+                SELECT COALESCE
+                       (MAX(CASE
                               WHEN fs.srvname LIKE fdw.fdwname || '\_%%'
                               THEN REPLACE(fs.srvname, fdw.fdwname || '_', '')::INT
                               ELSE 0
-                           END) + 1                    AS next_server_id
+                           END)
+                       , 0) + 1                        AS next_server_id
                   FROM pg_foreign_server               fs
                  INNER JOIN
                        pg_foreign_data_wrapper         fdw
@@ -278,31 +274,17 @@ class Server:
             cur.close()
 
 
-    def rename_server(self, data: Dict):
-        """Rename foreign server"""
+    def set_description(self, server_name: str, description: str):
+        """Update user-defined name"""
         try:
             cur = self.conn.cursor
 
-            if data['server_name'] != data['old_name']:
-                stmt = 'ALTER SERVER {old_name} RENAME TO {new_name}'
+            stmt = 'COMMENT ON SERVER {server} IS %s'
+            query = sql.SQL(stmt).format(
+                server=sql.Identifier(server_name)
+            )
+            cur.execute(query, (description,))
 
-                query = sql.SQL(stmt).format(
-                    old_name=sql.Identifier(data['old_name']),
-                    new_name=sql.Identifier(data['server_name'])
-                )
-                cur.execute(query)
-
-                self.conn.commit()
-
-                msg = f'Foreign server "{data["old_name"]}" successfully renamed to "{data["server_name"]}"'
-            else:
-                msg = 'Server name is the same. Rename is not needed.'
-
-            print(msg)
-            return {
-                'status_code': 200,
-                'message': msg
-            }
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
@@ -327,7 +309,8 @@ class Server:
                 print('POSTGRES')
             case _:
                 print('Schema import is not supported')
-                return
+
+        print(f'System views for "{server_name}" foreign server successfully created')
 
 
     def create_foreign_table(self, stmt: str, server_name: str, table_name: str):
@@ -340,7 +323,6 @@ class Server:
                 server=sql.Identifier(server_name)
             )
             cur.execute(query)
-            self.conn.commit()
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')

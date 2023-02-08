@@ -67,7 +67,6 @@ class UserMapping:
             )
 
             cur.execute(query, values)
-            self.conn.commit()
 
             msg = f'User mapping for foreign server "{server}" successfully created'
             print(msg)
@@ -101,7 +100,6 @@ class UserMapping:
             )
 
             cur.execute(query, values)
-            self.conn.commit()
 
             msg = f'User mapping for foreign server "{server}" successfully updated'
             print(msg)
