@@ -5,6 +5,7 @@ import psycopg2
 from psycopg2 import sql
 
 from .. import CONNECTION
+from ..adapter import Adapter
 from ..connection import Connection
 from .util import options_and_values
 
@@ -78,3 +79,51 @@ class Schema:
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
         finally:
             cur.close()
+
+
+    def get_schema_list(self, server_name: str, fdw_name: str):
+        """Get list of available schemas to import."""
+        table_name = f'{server_name}_schema_list'
+
+        adapter = Adapter(fdw_name)
+        stmt = adapter.schema_list()
+
+        res = []
+        try:
+            cur = self.conn.cursor
+
+            if stmt is not None:
+                query = sql.SQL(stmt).format(
+                    full_table_name=sql.Identifier('public', table_name),
+                )
+                cur.execute(query)
+                rows = cur.fetchall()
+
+                res = [val[0] for val in rows]
+
+                msg = f'Foreign server "{server_name}" schemas count: {len(res)}'
+                print(msg)
+
+                return res
+                #return {
+                #    'status_code': 200,
+                #    'message': msg,
+                #    'schemas': res
+                #}
+
+            msg = f'Foreign server "{server_name}" doesn''t support schemas import'
+            print(msg)
+            #return {
+            #    'status_code': 400,
+            #    'message': msg,
+            #    'schemas': []
+            #}
+            return res
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+        return res

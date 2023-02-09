@@ -6,8 +6,9 @@ from psycopg2 import sql
 
 from .. import CONNECTION
 from ..connection import Connection
+from ..adapter import Adapter
 from .user import UserMapping
-from .util import options_and_values, FdwType, ImportType
+from .util import options_and_values
 
 
 class Server:
@@ -152,34 +153,6 @@ class Server:
 
             self.conn.commit()
 
-            # TODO: create default schema for the foreign server
-            # within this schema create foreign table to fetch the list of schemas that could be imported
-            # this functionality should be triggered only for FDWs which support foreign schema import
-            #
-            # SQL (MYSQL)
-            # create foreign table schema_list (schema_name text) server mysql options (dbname 'information_schema', table_name 'schemata');
-            # select * from schema_list where schema_name not in ('information_schema', 'performance_schema');
-            #
-            # create foreign table table_list (table_schema text, table_name text, table_type text) server mysql options (dbname 'information_schema', table_name 'tables');
-            # select * from table_list where table_schema not in ('information_schema', 'performance_schema') and table_type in ('BASE TABLE', 'VIEW');
-            #
-            # postgres=# \d public.*
-            #                 Foreign table "public.schema_list"
-            #    Column    | Type | Collation | Nullable | Default | FDW options
-            # -------------+------+-----------+----------+---------+-------------
-            #  schema_name | text |           |          |         |
-            # Server: mysql
-            # FDW options: (dbname 'information_schema', table_name 'schemata')
-            #
-            #                  Foreign table "public.table_list"
-            #     Column    | Type | Collation | Nullable | Default | FDW options
-            # --------------+------+-----------+----------+---------+-------------
-            #  table_schema | text |           |          |         |
-            #  table_name   | text |           |          |         |
-            #  table_type   | text |           |          |         |
-            # Server: mysql
-            # FDW options: (dbname 'information_schema', table_name 'tables')
-
             msg = f'Foreign server "{server_name}" successfully created'
             print(msg)
             return {
@@ -295,56 +268,26 @@ class Server:
 
     def create_sys_views(self, server_name: str, fdw_name: str):
         """Supplemental views to support schema/table import operations."""
-
-        schema_list_name = f'{server_name}_schema_list'
-        table_list_name = f'{server_name}_table_list'
-
-        match fdw_name:
-            case FdwType.MYSQL.value:
-                stmt = self.mysql_queries(ImportType.SCHEMA)
-                self.create_foreign_table(stmt, server_name, schema_list_name)
-                stmt = self.mysql_queries(ImportType.TABLE)
-                self.create_foreign_table(stmt, server_name, table_list_name)
-            case FdwType.POSTGRES.value:
-                print('POSTGRES')
-            case _:
-                print('Schema import is not supported')
-
-        print(f'System views for "{server_name}" foreign server successfully created')
+        adapter = Adapter(fdw_name)
+        self.create_foreign_table(adapter.schema_list_table(), server_name, f'{server_name}_schema_list')
+        self.create_foreign_table(adapter.table_list_table(), server_name, f'{server_name}_table_list')
 
 
     def create_foreign_table(self, stmt: str, server_name: str, table_name: str):
         """Create helper dictionary foreign table in a public schema"""
         try:
-            cur = self.conn.cursor
+            if stmt is not None:
+                cur = self.conn.cursor
 
-            query = sql.SQL(stmt).format(
-                full_table_name=sql.Identifier('public', table_name),
-                server=sql.Identifier(server_name)
-            )
-            cur.execute(query)
+                query = sql.SQL(stmt).format(
+                    full_table_name=sql.Identifier('public', table_name),
+                    server=sql.Identifier(server_name)
+                )
+                cur.execute(query)
+                print(f'"{table_name}" system table for "{server_name}" server successfully created')
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
             raise e
         finally:
             cur.close()
-
-
-    def mysql_queries(self, import_type: ImportType) -> str:
-        """Generating adapter specific statements for system objects creation in 'public' schema"""
-        match import_type:
-            case ImportType.SCHEMA:
-                stmt =  """
-                    CREATE FOREIGN TABLE IF NOT EXISTS {full_table_name} (schema_name TEXT)
-                    SERVER {server}
-                    OPTIONS (dbname 'information_schema', table_name 'schemata')
-                """
-            case ImportType.TABLE:
-                stmt =  """
-                    CREATE FOREIGN TABLE IF NOT EXISTS {full_table_name} (table_schema TEXT, table_name TEXT, table_type TEXT)
-                    SERVER {server}
-                    OPTIONS (dbname 'information_schema', table_name 'tables')
-                """
-
-        return stmt
