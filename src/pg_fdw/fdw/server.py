@@ -153,13 +153,10 @@ class Server:
 
             self.conn.commit()
 
-            msg = f'Foreign server "{server_name}" successfully created'
-            print(msg)
-            return {
-                'status_code': 200,
-                'message': msg,
-                'server': self.get_server(server_name)
-            }
+            print(f'Foreign server "{server_name}" successfully created')
+
+            return self.get_server(server_name)
+
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
@@ -170,7 +167,6 @@ class Server:
 
     def update_server(self, data: Dict):
         """Update foreign server"""
-
         try:
             cur = self.conn.cursor
 
@@ -197,13 +193,10 @@ class Server:
 
             self.conn.commit()
 
-            msg = f'Foreign server "{data["server_name"]}" successfully updated'
-            print(msg)
-            return {
-                'status_code': 200,
-                'message': msg,
-                'server': self.get_server(data["server_name"])
-            }
+            print(f'Foreign server "{data["server_name"]}" successfully updated')
+
+            return self.get_server(data["server_name"])
+
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')

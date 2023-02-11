@@ -101,24 +101,12 @@ class Schema:
 
                 res = [val[0] for val in rows]
 
-                msg = f'Foreign server "{server_name}" schemas count: {len(res)}'
-                print(msg)
-
+                print(f'Foreign server "{server_name}" schemas count: {len(res)}')
                 return res
-                #return {
-                #    'status_code': 200,
-                #    'message': msg,
-                #    'schemas': res
-                #}
 
-            msg = f'Foreign server "{server_name}" doesn''t support schemas import'
-            print(msg)
-            #return {
-            #    'status_code': 400,
-            #    'message': msg,
-            #    'schemas': []
-            #}
+            print(f'Foreign server "{server_name}" doesn''t support schemas import')
             return res
+
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
