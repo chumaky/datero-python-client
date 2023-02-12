@@ -269,9 +269,9 @@ class Server:
     def create_foreign_table(self, stmt: str, server_name: str, table_name: str):
         """Create helper dictionary foreign table in a public schema"""
         try:
-            if stmt is not None:
-                cur = self.conn.cursor
+            cur = self.conn.cursor
 
+            if stmt is not None:
                 query = sql.SQL(stmt).format(
                     full_table_name=sql.Identifier('public', table_name),
                     server=sql.Identifier(server_name)

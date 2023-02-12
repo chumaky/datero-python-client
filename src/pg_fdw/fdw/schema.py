@@ -113,5 +113,3 @@ class Schema:
             raise e
         finally:
             cur.close()
-
-        return res
