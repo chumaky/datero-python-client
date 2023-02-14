@@ -62,4 +62,4 @@ class App:
         # TODO: disabling until CLI will be implemented as a ready-to-use API alternative
         #self.server.init_servers()
         #self.user.init_user_mappings()
-        #self.schema.import_foreign_schema()
+        #self.schema.init_foreign_schemas()

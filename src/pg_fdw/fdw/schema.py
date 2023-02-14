@@ -22,8 +22,8 @@ class Schema:
         return self.config['servers'] if 'servers' in self.config else {}
 
 
-    def import_foreign_schema(self):
-        """Import foreign schema"""
+    def init_foreign_schemas(self):
+        """Init foreign schemas"""
 
         def recreate_schema():
             query = sql.SQL('DROP SCHEMA IF EXISTS {local_schema} CASCADE') \
@@ -111,5 +111,65 @@ class Schema:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
             raise e
+        finally:
+            cur.close()
+
+
+    def import_foreign_schema(self, data: Dict):
+        """Import foreign schema"""
+        def recreate_schema():
+            query = sql.SQL('DROP SCHEMA IF EXISTS {local_schema} CASCADE') \
+                .format(local_schema=sql.Identifier(local_schema))
+
+            cur.execute(query)
+
+            query = sql.SQL('CREATE SCHEMA IF NOT EXISTS {local_schema}') \
+                .format(local_schema=sql.Identifier(local_schema))
+
+            cur.execute(query)
+
+        try:
+            cur = self.conn.cursor
+
+            server_name = data['server_name']
+            remote_schema = data['remote_schema']
+            local_schema = server_name + '__' + data['local_schema']
+            import_options = data['options'] if 'options' in data else None
+
+            recreate_schema()
+
+            stmt = \
+                'IMPORT FOREIGN SCHEMA {remote_schema} ' \
+                'FROM SERVER {server} ' \
+                'INTO {local_schema}'
+
+            if import_options is not None and len(import_options) > 0:
+                stmt += ' OPTIONS({options})'
+                options, values = options_and_values(import_options)
+
+                query = sql.SQL(stmt).format(
+                    remote_schema=sql.Identifier(remote_schema),
+                    server=sql.Identifier(server_name),
+                    local_schema=sql.Identifier(local_schema),
+                    options=options
+                )
+                cur.execute(query, values)
+            else:
+                query = sql.SQL(stmt).format(
+                    remote_schema=sql.Identifier(remote_schema),
+                    server=sql.Identifier(server_name),
+                    local_schema=sql.Identifier(local_schema),
+                )
+                cur.execute(query)
+
+            self.conn.commit()
+            print(f'Foreign schema "{remote_schema}" from server "{server_name}" successfully imported into "{local_schema}"')
+
+            data['imported'] = True
+            return data
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
         finally:
             cur.close()
