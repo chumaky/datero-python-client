@@ -3,6 +3,7 @@
 from ..fdw import FdwType
 from .mysql import MySQL
 from .postgres  import Postgres
+from .oracle import Oracle
 
 
 class Adapter:
@@ -21,6 +22,8 @@ class Adapter:
                 stmt = MySQL.schema_list_table()
             case FdwType.POSTGRES.value:
                 stmt = Postgres.schema_list_table()
+            case FdwType.ORACLE.value:
+                stmt = Oracle.schema_list_table()
             case _:
                 print('Schema import is not supported')
 
@@ -36,6 +39,8 @@ class Adapter:
                 stmt = MySQL.table_list_table()
             case FdwType.POSTGRES.value:
                 stmt = Postgres.table_list_table()
+            case FdwType.ORACLE.value:
+                stmt = Oracle.table_list_table()
             case _:
                 print('Schema import is not supported')
 
@@ -51,6 +56,8 @@ class Adapter:
                 stmt = MySQL.schema_list()
             case FdwType.POSTGRES.value:
                 stmt = Postgres.schema_list()
+            case FdwType.ORACLE.value:
+                stmt = Oracle.schema_list()
             case _:
                 print('Schema import is not supported')
 
@@ -66,6 +73,8 @@ class Adapter:
                 stmt = MySQL.table_list()
             case FdwType.POSTGRES.value:
                 stmt = Postgres.table_list()
+            case FdwType.ORACLE.value:
+                stmt = Oracle.table_list()
             case _:
                 print('Getting table list is not supported')
 

@@ -299,6 +299,14 @@ fdw_options:
         position: 2
 
     import_foreign_schema:
+      remote_schema:
+        description: Remote schema in Oracle server to import from.
+        required: true
+        position: 1
+      local_schema:
+        description: Local schema in which imported foreign tables will be created.
+        required: true
+        position: 2
 
     create_foreign_table:
       table:
@@ -402,11 +410,11 @@ fdw_options:
 
     import_foreign_schema:
       remote_schema:
-        description: The remote schema in PostgreSQL server to import from.
+        description: Remote schema in PostgreSQL server to import from.
         required: true
         position: 1
       local_schema:
-        description: The schema in which the imported foreign tables will be created.
+        description: Local schema in which imported foreign tables will be created.
         required: true
         position: 2
 
