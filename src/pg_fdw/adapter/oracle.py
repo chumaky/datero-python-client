@@ -28,7 +28,7 @@ class Oracle:
             SELECT DISTINCT
                    tab.owner            AS schema_name
               FROM {full_table_name}    tab
-             WHERE tab.owner            NOT IN ('SYS', 'SYSTEM', 'XDB', 'MDSYS', 'CTXSYS', 'WMSYS', 'LBACSYS', 'OLAPSYS', 'ORDSYS')
+             WHERE tab.owner            NOT IN ('PUBLIC', 'SYS', 'SYSTEM', 'XDB', 'MDSYS', 'CTXSYS', 'WMSYS', 'LBACSYS', 'OLAPSYS', 'ORDSYS')
         """
 
     @staticmethod
@@ -39,6 +39,6 @@ class Oracle:
                  , tab.object_name      AS table_name
                  , tab.object_type      AS table_type
               FROM {full_table_name}    tab
-             WHERE tab.owner            NOT IN ('SYS', 'SYSTEM', 'XDB', 'MDSYS', 'CTXSYS', 'WMSYS', 'LBACSYS', 'OLAPSYS', 'ORDSYS')
+             WHERE tab.owner            NOT IN ('PUBLIC', 'SYS', 'SYSTEM', 'XDB', 'MDSYS', 'CTXSYS', 'WMSYS', 'LBACSYS', 'OLAPSYS', 'ORDSYS')
                AND tab.object_type      IN ('TABLE', 'VIEW')
         """
