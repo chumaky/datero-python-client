@@ -165,11 +165,11 @@ class Schema:
             self.conn.commit()
             print(f'Foreign schema "{remote_schema}" from server "{server_name}" successfully imported into "{local_schema}"')
 
-            data['imported'] = True
             return data
 
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
         finally:
             cur.close()

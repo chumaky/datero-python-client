@@ -2,6 +2,8 @@
 
 from ..fdw import FdwType
 from .mysql import MySQL
+from .postgres  import Postgres
+
 
 class Adapter:
     """Wrapper for the underlying specific adapters"""
@@ -18,7 +20,7 @@ class Adapter:
             case FdwType.MYSQL.value:
                 stmt = MySQL.schema_list_table()
             case FdwType.POSTGRES.value:
-                print('POSTGRES')
+                stmt = Postgres.schema_list_table()
             case _:
                 print('Schema import is not supported')
 
@@ -33,7 +35,7 @@ class Adapter:
             case FdwType.MYSQL.value:
                 stmt = MySQL.table_list_table()
             case FdwType.POSTGRES.value:
-                print('POSTGRES')
+                stmt = Postgres.table_list_table()
             case _:
                 print('Schema import is not supported')
 
@@ -48,8 +50,23 @@ class Adapter:
             case FdwType.MYSQL.value:
                 stmt = MySQL.schema_list()
             case FdwType.POSTGRES.value:
-                print('POSTGRES')
+                stmt = Postgres.schema_list()
             case _:
                 print('Schema import is not supported')
+
+        return stmt
+
+
+    def table_list(self):
+        """Query to return tables list"""
+        stmt = None
+
+        match self.fdw_name:
+            case FdwType.MYSQL.value:
+                stmt = MySQL.table_list()
+            case FdwType.POSTGRES.value:
+                stmt = Postgres.table_list()
+            case _:
+                print('Getting table list is not supported')
 
         return stmt

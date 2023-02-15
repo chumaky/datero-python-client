@@ -1,7 +1,7 @@
-"""MySQL database queries"""
+"""Postgres database queries"""
 
-class MySQL:
-    """MySQL database queries"""
+class Postgres:
+    """Postgres database queries"""
 
     @staticmethod
     def schema_list_table():
@@ -9,7 +9,7 @@ class MySQL:
         return """
             CREATE FOREIGN TABLE IF NOT EXISTS {full_table_name} (schema_name TEXT)
             SERVER {server}
-            OPTIONS (dbname 'information_schema', table_name 'schemata')
+            OPTIONS (schema_name 'information_schema', table_name 'schemata')
         """
 
     @staticmethod
@@ -18,7 +18,7 @@ class MySQL:
         return  """
             CREATE FOREIGN TABLE IF NOT EXISTS {full_table_name} (table_schema TEXT, table_name TEXT, table_type TEXT)
             SERVER {server}
-            OPTIONS (dbname 'information_schema', table_name 'tables')
+            OPTIONS (schema_name 'information_schema', table_name 'tables')
         """
 
     @staticmethod
@@ -27,7 +27,7 @@ class MySQL:
         return  """
             SELECT tab.schema_name      AS schema_name
               FROM {full_table_name}    tab
-             WHERE tab.schema_name      NOT IN ('mysql', 'sys', 'information_schema', 'performance_schema')
+             WHERE tab.schema_name      NOT IN ('pg_toast')
         """
 
     @staticmethod
@@ -38,6 +38,6 @@ class MySQL:
                  , tab.table_name       AS table_name
                  , tab.table_type       AS table_type
               FROM {full_table_name}    tab
-             WHERE tab.table_schema     NOT IN ('mysql', 'sys', 'information_schema', 'performance_schema')
+             WHERE tab.table_schema     NOT IN ('pg_toast')
                AND tab.table_type       IN ('BASE TABLE', 'VIEW');
         """
