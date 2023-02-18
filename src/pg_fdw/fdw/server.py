@@ -210,8 +210,7 @@ class Server:
 
     def gen_server_name(self, data: Dict):
         """Generate server name"""
-        try:
-            cur = self.conn.cursor
+        with self.conn.cursor as cur:
             query = r"""
                 SELECT COALESCE
                        (MAX(CASE
@@ -235,31 +234,15 @@ class Server:
 
             return server_name
 
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-            raise e
-        finally:
-            cur.close()
-
 
     def set_description(self, server_name: str, description: str):
         """Update user-defined name"""
-        try:
-            cur = self.conn.cursor
-
+        with self.conn.cursor as cur:
             stmt = 'COMMENT ON SERVER {server} IS %s'
             query = sql.SQL(stmt).format(
                 server=sql.Identifier(server_name)
             )
             cur.execute(query, (description,))
-
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-            raise e
-        finally:
-            cur.close()
 
 
     def create_sys_views(self, server_name: str, fdw_name: str):
@@ -271,9 +254,7 @@ class Server:
 
     def create_foreign_table(self, stmt: str, server_name: str, table_name: str):
         """Create helper dictionary foreign table in a public schema"""
-        try:
-            cur = self.conn.cursor
-
+        with self.conn.cursor as cur:
             if stmt is not None:
                 query = sql.SQL(stmt).format(
                     full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
@@ -281,9 +262,3 @@ class Server:
                 )
                 cur.execute(query)
                 print(f'"{table_name}" system table for "{server_name}" server successfully created')
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-            raise e
-        finally:
-            cur.close()

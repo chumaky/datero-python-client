@@ -51,9 +51,7 @@ class UserMapping:
 
     def create_user_mapping(self, server: str, props: Dict):
         """Create user mapping for a foreign server"""
-        try:
-            cur = self.conn.cursor
-
+        with self.conn.cursor as cur:
             stmt = \
                 'CREATE USER MAPPING FOR CURRENT_USER ' \
                 'SERVER {server} ' \
@@ -69,19 +67,11 @@ class UserMapping:
             cur.execute(query, values)
 
             print(f'User mapping for foreign server "{server}" successfully created')
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-            raise e
-        finally:
-            cur.close()
 
 
     def alter_user_mapping(self, server: str, props: Dict):
         """Alter user mapping for a foreign server"""
-        try:
-            cur = self.conn.cursor
-
+        with self.conn.cursor as cur:
             stmt = \
                 'ALTER USER MAPPING FOR CURRENT_USER ' \
                 'SERVER {server} ' \
@@ -97,9 +87,3 @@ class UserMapping:
             cur.execute(query, values)
 
             print(f'User mapping for foreign server "{server}" successfully updated')
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-            raise e
-        finally:
-            cur.close()

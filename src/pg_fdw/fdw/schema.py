@@ -181,21 +181,12 @@ class Schema:
 
     def set_description(self, server_name: str, remote_schema: str, local_schema: str):
         """Update user-defined name"""
-        try:
-            cur = self.conn.cursor
-
+        with self.conn.cursor as cur:
             stmt = 'COMMENT ON SCHEMA {schema} IS %s'
             query = sql.SQL(stmt).format(
                 schema=sql.Identifier(local_schema)
             )
             cur.execute(query, (f'{server_name}#{DATERO_SCHEMA}#{remote_schema}',))
-
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-            raise e
-        finally:
-            cur.close()
 
 
     def get_local_schema_list(self):
