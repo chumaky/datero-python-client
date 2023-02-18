@@ -9,6 +9,7 @@ from ..connection import Connection
 from ..adapter import Adapter
 from .user import UserMapping
 from .util import options_and_values
+from .. import DATERO_SCHEMA
 
 
 class Server:
@@ -202,7 +203,7 @@ class Server:
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
             raise e
         finally:
-           cur.close()
+            cur.close()
 
 
     def gen_server_name(self, data: Dict):
@@ -273,7 +274,7 @@ class Server:
 
             if stmt is not None:
                 query = sql.SQL(stmt).format(
-                    full_table_name=sql.Identifier('public', table_name),
+                    full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
                     server=sql.Identifier(server_name)
                 )
                 cur.execute(query)

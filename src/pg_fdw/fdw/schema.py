@@ -8,6 +8,7 @@ from .. import CONNECTION
 from ..adapter import Adapter
 from ..connection import Connection
 from .util import options_and_values
+from .. import DATERO_SCHEMA
 
 class Schema:
     """Importing schema from foreign server"""
@@ -94,7 +95,7 @@ class Schema:
 
             if stmt is not None:
                 query = sql.SQL(stmt).format(
-                    full_table_name=sql.Identifier('public', table_name),
+                    full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
                 )
                 cur.execute(query)
                 rows = cur.fetchall()
@@ -133,10 +134,12 @@ class Schema:
 
             server_name = data['server_name']
             remote_schema = data['remote_schema']
-            local_schema = server_name + '__' + data['local_schema']
+            local_schema = data['local_schema']
+
             import_options = data['options'] if 'options' in data else None
 
             recreate_schema()
+            self.set_description(server_name, remote_schema, local_schema)
 
             stmt = \
                 'IMPORT FOREIGN SCHEMA {remote_schema} ' \
@@ -166,6 +169,25 @@ class Schema:
             print(f'Foreign schema "{remote_schema}" from server "{server_name}" successfully imported into "{local_schema}"')
 
             return data
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+
+    def set_description(self, server_name: str, remote_schema: str, local_schema: str):
+        """Update user-defined name"""
+        try:
+            cur = self.conn.cursor
+
+            stmt = 'COMMENT ON SCHEMA {schema} IS %s'
+            query = sql.SQL(stmt).format(
+                schema=sql.Identifier(local_schema)
+            )
+            cur.execute(query, (f'{server_name}#{DATERO_SCHEMA}#{remote_schema}',))
 
         except psycopg2.Error as e:
             self.conn.rollback()

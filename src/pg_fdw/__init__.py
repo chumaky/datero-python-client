@@ -6,3 +6,5 @@ DEFAULT_CONFIG='default.yaml'
 USER_CONFIG='config.yaml'
 
 CONNECTION='postgres'
+
+DATERO_SCHEMA = 'datero'

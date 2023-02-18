@@ -35,3 +35,4 @@ class ImportType(Enum):
     """Schema/Table import levels"""
     SCHEMA = 'schema'
     TABLE = 'table'
+
