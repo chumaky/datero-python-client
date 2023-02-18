@@ -32,14 +32,16 @@ class Extension:
             cur.execute(query)
             rows = cur.fetchall()
             res = [{ 'name': val[0], 'description': val[1] } for val in rows]
+
+            self.conn.commit()
+
+            return res
+
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
         finally:
             cur.close()
-
-        return res
-        #return [key for key in self.config['fdw_list'].keys()]
 
 
     def init_extensions(self):
@@ -61,4 +63,3 @@ class Extension:
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
         finally:
             cur.close()
-

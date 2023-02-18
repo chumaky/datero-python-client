@@ -67,13 +67,15 @@ class Server:
                 'user_mapping': val[4]
             } for val in rows]
 
+            self.conn.commit()
+            return res
+
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            raise e
         finally:
             cur.close()
-
-        return res
 
 
     def get_server(self, server_name: str) -> Dict:
@@ -210,7 +212,7 @@ class Server:
         """Generate server name"""
         try:
             cur = self.conn.cursor
-            query = """
+            query = r"""
                 SELECT COALESCE
                        (MAX(CASE
                               WHEN fs.srvname LIKE fdw.fdwname || '\_%%'

@@ -68,12 +68,7 @@ class UserMapping:
 
             cur.execute(query, values)
 
-            msg = f'User mapping for foreign server "{server}" successfully created'
-            print(msg)
-            return {
-                'status_code': 200,
-                'message': msg
-            }
+            print(f'User mapping for foreign server "{server}" successfully created')
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
@@ -101,12 +96,7 @@ class UserMapping:
 
             cur.execute(query, values)
 
-            msg = f'User mapping for foreign server "{server}" successfully updated'
-            print(msg)
-            return {
-                'status_code': 200,
-                'message': msg
-            }
+            print(f'User mapping for foreign server "{server}" successfully updated')
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')

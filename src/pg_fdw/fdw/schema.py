@@ -82,7 +82,7 @@ class Schema:
             cur.close()
 
 
-    def get_schema_list(self, server_name: str, fdw_name: str):
+    def get_foreign_schema_list(self, server_name: str, fdw_name: str):
         """Get list of available schemas to import."""
         table_name = f'{server_name}_schema_list'
 
@@ -102,6 +102,7 @@ class Schema:
 
                 res = [val[0] for val in rows]
 
+                self.conn.commit()
                 print(f'Foreign server "{server_name}" schemas count: {len(res)}')
                 return res
 
@@ -192,6 +193,43 @@ class Schema:
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+
+    def get_local_schema_list(self):
+        """Get list of local schemas with set of categorization flags"""
+        try:
+            cur = self.conn.cursor
+            query = r"""
+                SELECT n.nspname            AS schema_name
+                  FROM pg_namespace         n
+                 WHERE n.nspname            NOT IN ( 'pg_catalog'
+                                                   , 'pg_toast'
+                                                   , 'information_schema'
+                                                   , %(datero)s
+                                                   )
+                   AND NOT EXISTS
+                   (
+                       SELECT 1
+                         FROM pg_extension      e
+                        WHERE e.extname         LIKE '%%\_fdw'
+                          AND e.extnamespace    = n.oid
+                   )
+                 ORDER BY n.nspname
+            """
+            cur.execute(query, {'datero': DATERO_SCHEMA})
+            rows = cur.fetchall()
+
+            res = [val[0] for val in rows]
+
+            self.conn.commit()
+            return res
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
             raise e
         finally:
             cur.close()
