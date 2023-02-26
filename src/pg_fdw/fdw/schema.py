@@ -202,18 +202,69 @@ class Schema:
                                                    , %(datero)s
                                                    )
                    AND NOT EXISTS
-                   (
+                     (
                        SELECT 1
                          FROM pg_extension      e
                         WHERE e.extname         LIKE '%%\_fdw'
                           AND e.extnamespace    = n.oid
-                   )
+                     )
                  ORDER BY n.nspname
             """
             cur.execute(query, {'datero': DATERO_SCHEMA})
             rows = cur.fetchall()
 
             res = [val[0] for val in rows]
+
+            self.conn.commit()
+            return res
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            raise e
+        finally:
+            cur.close()
+
+
+    def get_local_schema_objects(self, schema_name: str):
+        """Get list of local schema objects"""
+        try:
+            cur = self.conn.cursor
+            query = r"""
+                SELECT c.relname            AS object_name
+                     , CASE
+                         WHEN c.relkind     IN ('r', 'f')
+                         THEN 'table'
+                         ELSE 'view'
+                       END                  AS object_type
+                  FROM pg_class             c
+                 INNER JOIN
+                       pg_namespace         n
+                    ON n.oid                = c.relnamespace
+                 WHERE n.nspname            = %(schema_name)s
+                   AND n.nspname            NOT IN ( 'pg_catalog'
+                                                   , 'pg_toast'
+                                                   , 'information_schema'
+                                                   , %(datero)s
+                                                   )
+                   AND NOT EXISTS
+                     (
+                       SELECT 1
+                         FROM pg_extension      e
+                        WHERE e.extname         LIKE '%%\_fdw'
+                          AND e.extnamespace    = n.oid
+                     )
+                 ORDER BY
+                       object_type
+                     , object_name
+            """
+            cur.execute(query, {'schema_name': schema_name, 'datero': DATERO_SCHEMA})
+            rows = cur.fetchall()
+
+            res = [{
+                'object_name': val[0],
+                'object_type': val[1]
+            } for val in rows]
 
             self.conn.commit()
             return res
