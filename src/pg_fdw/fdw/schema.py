@@ -232,16 +232,13 @@ class Schema:
             cur = self.conn.cursor
             query = r"""
                 SELECT c.relname            AS object_name
-                     , CASE
-                         WHEN c.relkind     IN ('r', 'f')
-                         THEN 'table'
-                         ELSE 'view'
-                       END                  AS object_type
+                     , c.relkind            AS object_type
                   FROM pg_class             c
                  INNER JOIN
                        pg_namespace         n
                     ON n.oid                = c.relnamespace
                  WHERE n.nspname            = %(schema_name)s
+                   AND c.relkind            IN ('f', 'r', 'p', 'v', 'm')
                    AND n.nspname            NOT IN ( 'pg_catalog'
                                                    , 'pg_toast'
                                                    , 'information_schema'
@@ -265,6 +262,70 @@ class Schema:
                 'object_name': val[0],
                 'object_type': val[1]
             } for val in rows]
+
+            self.conn.commit()
+            return res
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            raise e
+        finally:
+            cur.close()
+
+
+    def get_object_details(self, schema_name: str, object_name: str, object_type: str):
+        """Get list of columns for a given table/view"""
+        try:
+            cur = self.conn.cursor
+            query = r"""
+                SELECT c.relname                                AS object_name
+                     , c.relkind                                AS object_type
+                     , ARRAY_AGG(a.attname ORDER BY a.attnum)   AS columns
+                  FROM pg_class             c
+                 INNER JOIN
+                       pg_attribute         a
+                    ON a.attrelid           = c.oid
+                 INNER JOIN
+                       pg_namespace         n
+                    ON n.oid                = c.relnamespace
+                 WHERE n.nspname            = %(schema_name)s
+                   AND c.relname            = %(object_name)s
+                   AND c.relkind            = %(object_type)s
+                   AND a.attnum             > 0
+                   AND c.relkind            IN ('f', 'r', 'p', 'v', 'm')
+                   AND n.nspname            NOT IN ( 'pg_catalog'
+                                                   , 'pg_toast'
+                                                   , 'information_schema'
+                                                   , %(datero)s
+                                                   )
+                   AND NOT EXISTS
+                     (
+                       SELECT 1
+                         FROM pg_extension      e
+                        WHERE e.extname         LIKE '%%\_fdw'
+                          AND e.extnamespace    = n.oid
+                     )
+                 GROUP BY
+                       c.relname
+                     , c.relkind
+                 ORDER BY
+                       object_type
+                     , object_name
+            """
+            cur.execute(query, {
+                'schema_name': schema_name,
+                'object_name': object_name,
+                'object_type': object_type,
+                'datero': DATERO_SCHEMA
+            })
+            row = cur.fetchone()
+
+            res = {
+                'object_name': row[0],
+                'object_type': row[1],
+                'columns': row[2]
+            }
 
             self.conn.commit()
             return res
