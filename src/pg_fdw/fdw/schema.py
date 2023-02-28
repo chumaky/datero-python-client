@@ -325,7 +325,7 @@ class Schema:
                 'object_name': row[0],
                 'object_type': row[1],
                 'columns': row[2]
-            }
+            } if row is not None else None
 
             self.conn.commit()
             return res
