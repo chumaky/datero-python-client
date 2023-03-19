@@ -208,6 +208,33 @@ class Server:
             cur.close()
 
 
+    def delete_server(self, data: Dict):
+        """Delete foreign server"""
+        try:
+            cur = self.conn.cursor
+
+            stmt = 'DROP SERVER {server} CASCADE'
+
+            query = sql.SQL(stmt).format(
+                server=sql.Identifier(data["server_name"]),
+            )
+            cur.execute(query)
+
+            self.conn.commit()
+
+            msg = f'Server "{data["description"]}" successfully deleted'
+            print(msg)
+
+            return { 'message': msg }
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
+
+
     def gen_server_name(self, data: Dict):
         """Generate server name"""
         with self.conn.cursor as cur:
