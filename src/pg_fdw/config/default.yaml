@@ -346,8 +346,12 @@ fdw_options:
         position: 1
 
     import_foreign_schema:
-      # No options available. Default "public" value is used
-      # IMPORT FOREIGN SCHEMA public FROM SERVER sqlite_server INTO public;
+      # IMPORT FOREIGN SCHEMA "some_schema" FROM SERVER sqlite_server INTO public;
+      # Note: "some_schema" has no particular meaning and can be set to an arbitrary value.
+      local_schema:
+        description: The schema in which the imported foreign tables will be created.
+        required: true
+        position: 1
 
     create_foreign_table:
       table:

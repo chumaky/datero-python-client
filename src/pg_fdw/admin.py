@@ -38,9 +38,8 @@ class Admin:
 
     def create_system_schema(self):
         """Create system schema"""
+        cur = self.conn.cursor
         try:
-            cur = self.conn.cursor
-
             query = sql.SQL('CREATE SCHEMA IF NOT EXISTS {datero_schema}') \
                 .format(datero_schema=sql.Identifier(DATERO_SCHEMA))
 

@@ -7,7 +7,7 @@ from psycopg2 import sql
 from .. import CONNECTION
 from ..adapter import Adapter
 from ..connection import Connection
-from .util import options_and_values
+from .util import options_and_values, FdwType
 from .. import DATERO_SCHEMA
 
 class Schema:
@@ -103,10 +103,15 @@ class Schema:
                 res = [val[0] for val in rows]
 
                 self.conn.commit()
-                print(f'Foreign server "{server_name}" schemas count: {len(res)}')
-                return res
 
-            print(f'Foreign server "{server_name}" doesn''t support schemas import')
+            elif fdw_name == FdwType.SQLITE.value:
+                res = ['public']
+
+            if len(res) > 0:
+                print(f'Foreign server "{server_name}" schemas count: {len(res)}')
+            else:
+                print(f'Foreign server "{server_name}" doesn''t support schemas import')
+
             return res
 
         except psycopg2.Error as e:
