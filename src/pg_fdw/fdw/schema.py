@@ -286,11 +286,17 @@ class Schema:
             query = r"""
                 SELECT c.relname                                AS object_name
                      , c.relkind                                AS object_type
-                     , ARRAY_AGG(a.attname ORDER BY a.attnum)   AS columns
+                     , JSON_AGG
+                       ( JSON_BUILD_OBJECT('name', a.attname, 'data_type', t.typname)
+                         ORDER BY a.attnum
+                       )                                        AS columns
                   FROM pg_class             c
                  INNER JOIN
                        pg_attribute         a
                     ON a.attrelid           = c.oid
+                 INNER JOIN
+                       pg_type              t
+                    ON t.oid                = a.atttypid
                  INNER JOIN
                        pg_namespace         n
                     ON n.oid                = c.relnamespace
