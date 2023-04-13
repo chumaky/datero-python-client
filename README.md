@@ -1,4 +1,4 @@
 # About
-Backend API for managing FDW extensions within Postgres Heterogeneous SQL (HSQL) containerized image.
+Datero python client
 
-Postgres HSQL image [repository](https://github.com/AmebaBrain/postgres_docker_images)
+Datero [repository](https://datero.tech/)
