@@ -206,6 +206,7 @@ class Schema:
                                                    , 'information_schema'
                                                    , %(datero)s
                                                    )
+                   AND n.nspname            NOT LIKE %(datero)s || '\_%%'
                    AND NOT EXISTS
                      (
                        SELECT 1
