@@ -12,7 +12,6 @@ class Admin:
     def __init__(self, config: Dict):
         self.config = config
         self.conn = Connection(self.config[CONNECTION])
-        self.create_system_schema()
 
 
     def healthcheck(self):

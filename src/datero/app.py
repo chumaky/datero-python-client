@@ -62,6 +62,7 @@ class App:
             print('WARNING: Config file is not specified. Used default config which could only install FDW extensions')
             print('WARNING: No foreign servers will be available')
 
+        self.admin.create_system_schema()
         self.extension.init_extensions()
 
         # TODO: disabling until CLI will be implemented as a ready-to-use API alternative
