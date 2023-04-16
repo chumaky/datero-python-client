@@ -24,7 +24,7 @@ services:
       - ./mysql_setup.sql:/docker-entrypoint-initdb.d/mysql_setup.sql
 
   postgres:
-    image: docker.io/toleg/postgres_hsql
+    image: docker.io/chumaky/datero_engine
     container_name: datero_postgres
     environment:
       POSTGRES_PASSWORD: postgres
