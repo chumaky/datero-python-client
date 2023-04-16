@@ -11,43 +11,43 @@ postgres:
 fdw_list:
   mysql_fdw:
     enabled: true
-    schema_name: datero_mysql_fdw
+    schema_name: datero_fdw
     name: MySQL
     icon: mysql.svg
     position: 1
   postgres_fdw:
     enabled: true
-    schema_name: datero_postgres_fdw
+    schema_name: datero_fdw
     name: Postgres
     icon: postgresql.svg
     position: 2
   mongo_fdw:
     enabled: true
-    schema_name: datero_mongo_fdw
+    schema_name: datero_fdw
     name: MongoDB
     icon: mongodb.svg
     position: 3
   oracle_fdw:
     enabled: true
-    schema_name: datero_oracle_fdw
+    schema_name: datero_fdw
     name: Oracle
     icon: oracle.svg
     position: 4
   tds_fdw:
     enabled: true
-    schema_name: datero_tds_fdw
+    schema_name: datero_fdw
     name: SQL Server
     icon: mssql.svg
     position: 5
   sqlite_fdw:
     enabled: true
-    schema_name: datero_sqlite_fdw
+    schema_name: datero_fdw
     name: SQLite
     icon: sqlite.svg
     position: 6
   file_fdw:
     enabled: true
-    schema_name: datero_file_fdw
+    schema_name: datero_fdw
     name: File Access
     description: >
       Access data files in the server's file system, or to execute programs on the server and read their output.

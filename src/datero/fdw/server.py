@@ -214,11 +214,18 @@ class Server:
             cur = self.conn.cursor
 
             stmt = 'DROP SERVER {server} CASCADE'
-
             query = sql.SQL(stmt).format(
                 server=sql.Identifier(data["server_name"]),
             )
             cur.execute(query)
+
+            stmt = 'DROP SCHEMA {schema} CASCADE'
+            for schema in self.get_imported_schemas(data["server_name"]):
+                query = sql.SQL(stmt).format(
+                    schema=sql.Identifier(schema)
+                )
+                cur.execute(query)
+                print(f'Schema "{schema}" successfully deleted')
 
             self.conn.commit()
 
@@ -289,3 +296,32 @@ class Server:
                 )
                 cur.execute(query)
                 print(f'"{table_name}" system table for "{server_name}" server successfully created')
+
+
+    # get list of imported schemas
+    def get_imported_schemas(self, server_name: str):
+        """Get list of imported schemas by specified server"""
+        try:
+            cur = self.conn.cursor
+
+            query = r"""
+                SELECT nsp.nspname      AS schema_name
+                  FROM pg_namespace     nsp
+                 INNER JOIN
+                       pg_description   dsc
+                    ON dsc.objoid       = nsp.oid
+                 WHERE dsc.description  LIKE %(comment)s
+            """
+            cur.execute(query, {'comment': f'{server_name}#{DATERO_SCHEMA}#%'})
+
+            res = [row[0] for row in cur.fetchall()]
+            self.conn.commit()
+
+            return res
+
+        except psycopg2.Error as e:
+            self.conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            raise e
+        finally:
+            cur.close()
