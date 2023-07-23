@@ -4,6 +4,7 @@ from ..fdw import FdwType
 from .mysql import MySQL
 from .postgres  import Postgres
 from .oracle import Oracle
+from .tds import MSSQL
 
 
 class Adapter:
@@ -24,6 +25,8 @@ class Adapter:
                 stmt = Postgres.schema_list_table()
             case FdwType.ORACLE.value:
                 stmt = Oracle.schema_list_table()
+            case FdwType.TDS.value:
+                stmt = MSSQL.schema_list_table()
             case _:
                 print('Schema import is not supported')
 
@@ -41,6 +44,8 @@ class Adapter:
                 stmt = Postgres.table_list_table()
             case FdwType.ORACLE.value:
                 stmt = Oracle.table_list_table()
+            case FdwType.TDS.value:
+                stmt = MSSQL.table_list_table()
             case _:
                 print('Schema import is not supported')
 
@@ -58,6 +63,8 @@ class Adapter:
                 stmt = Postgres.schema_list()
             case FdwType.ORACLE.value:
                 stmt = Oracle.schema_list()
+            case FdwType.TDS.value:
+                stmt = MSSQL.schema_list()
             case _:
                 print('Schema import is not supported')
 
@@ -75,6 +82,8 @@ class Adapter:
                 stmt = Postgres.table_list()
             case FdwType.ORACLE.value:
                 stmt = Oracle.table_list()
+            case FdwType.TDS.value:
+                stmt = MSSQL.table_list()
             case _:
                 print('Getting table list is not supported')
 
