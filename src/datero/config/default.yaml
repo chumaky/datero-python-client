@@ -346,8 +346,10 @@ fdw_options:
         position: 1
 
     import_foreign_schema:
+      # Note: sqlite doesn't have schemas. to support common IMPORT FOREIGN SCHEMA syntax
+      # it's required to use any dummy value for a remote_schema parameter.
       # IMPORT FOREIGN SCHEMA "some_schema" FROM SERVER sqlite_server INTO public;
-      # Note: "some_schema" has no particular meaning and can be set to an arbitrary value.
+      # "some_schema" has no particular meaning for sqlite and can be set to an arbitrary value.
       local_schema:
         description: The schema in which the imported foreign tables will be created.
         required: true
@@ -383,13 +385,40 @@ fdw_options:
 
     user_mapping:
       username:
-        description: Username to use when connecting to the MSSQL server.
+        description: Username to use when connecting to the MSSQL/Sybase server.
         required: true
         position: 1
       password:
-        description: Password to authenticate to the MSSQL server.
+        description: Password to authenticate to the MSSQL/Sybase server.
         required: true
         position: 2
+
+    import_foreign_schema:
+      remote_schema:
+        description: Remote schema in MSSQL/Sybase server to import from.
+        required: true
+        position: 1
+      local_schema:
+        description: Local schema in which imported foreign tables will be created.
+        required: true
+        position: 2
+
+    advanced:
+      import_foreign_schema:
+        import_default:
+          default: false
+          description: >
+            Controls whether column DEFAULT expressions are included in the definitions of foreign tables.
+          required: false
+          position: 1
+        import_not_null:
+          default: true
+          description: >
+            This option controls whether column NOT NULL constraints are included in the definitions
+            of foreign tables imported from a foreign server. The default is true.
+          required: false
+          position: 2
+
 
   postgres_fdw:
     foreign_server:
