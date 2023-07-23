@@ -9,7 +9,7 @@ class MSSQL:
         return """
             CREATE FOREIGN TABLE IF NOT EXISTS {full_table_name} (schema_name TEXT)
             SERVER {server}
-            OPTIONS (dbname 'information_schema', table_name 'schemata')
+            OPTIONS (schema_name 'information_schema', table_name 'schemata')
         """
 
     @staticmethod
@@ -18,7 +18,7 @@ class MSSQL:
         return  """
             CREATE FOREIGN TABLE IF NOT EXISTS {full_table_name} (table_schema TEXT, table_name TEXT, table_type TEXT)
             SERVER {server}
-            OPTIONS (dbname 'information_schema', table_name 'tables')
+            OPTIONS (schema_name 'information_schema', table_name 'tables')
         """
 
     @staticmethod
