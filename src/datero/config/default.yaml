@@ -381,6 +381,15 @@ fdw_options:
         required: true
         position: 3
 
+    user_mapping:
+      username:
+        description: Username to use when connecting to the MSSQL server.
+        required: true
+        position: 1
+      password:
+        description: Password to authenticate to the MSSQL server.
+        required: true
+        position: 2
 
   postgres_fdw:
     foreign_server:
