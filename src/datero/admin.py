@@ -19,7 +19,7 @@ class Admin:
         try:
             cur = self.conn.cursor
 
-            query = "SELECT 'Connected' AS status, '1.0.0' AS version, now() AS heartbeat"
+            query = "SELECT 'Connected' AS status, '1.1.0' AS version, now() AS heartbeat"
             cur.execute(query)
 
             row = cur.fetchone()
