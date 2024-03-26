@@ -1,0 +1,3 @@
+[submodule "src/datero/config/fdw_spec"]
+	path = src/datero/config/fdw_spec
+	url = https://github.com/chumaky/postgres-fdw-spec.git
