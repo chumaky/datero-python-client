@@ -59,26 +59,29 @@ fdw_list:
 
 # FDW options template
 #
-# <option> =
-#   option:
-#     default:
-#     description:
-#     position:
+# fdw_options:
+#   fdw_name:
+#     <categories>
+#     advanced:
+#       <categories>
 #
 # <categories> =
 #   foreign_server:
 #     <option>
 #   user_mapping:
 #     <option>
-#   foreign_table:
-#     <option>
 #   import_foreign_schema:
 #     <option>
+#   create_foreign_table:
+#     <option>
 #
-# fdw_name:
-#   <categories>
-#   advanced:
-#     <categories>
+# <option> =
+#   option:
+#     required: true | false
+#     default:
+#     description:
+#     position:
+
 
 # FDW options
 fdw_options:
@@ -504,3 +507,62 @@ fdw_options:
             of foreign tables imported from a foreign server. The default is true.
           required: false
           position: 4
+
+
+  redis_fdw:
+    foreign_server:
+      address:
+        default: 127.0.0.1
+        description: Address or hostname of the Redis server. Defaults to 127.0.0.1
+        required: true
+        position: 1
+      port:
+        default: 6379
+        description: Port number of the Redis server. Defaults to 6379
+        required: true
+        position: 2
+
+    user_mapping:
+      password:
+        description: >
+          Password to be used if the server demands password authentication.
+          By default, no password required.
+        required: false
+        position: 1
+
+    create_foreign_table:
+      database:
+        default: 0
+        description: >
+          The numeric ID of the Redis database to query.
+        required: false
+        position: 1
+      tabletype:
+        default: none
+        description: >
+          Can be 'hash', 'list', 'set' or 'zset'.
+          Default: none, meaning only look at scalar values.
+        required: false
+        position: 2
+      tablekeyprefix:
+        default: none
+        description: >
+          Only get items whose names start with the prefix.
+          You can only have one of tablekeyset and tablekeyprefix, and if you use singleton_key you can't have either.
+        required: false
+        position: 3
+      tablekeyset:
+        default: none
+        description: >
+          Fetch item names from the named set.
+          You can only have one of tablekeyset and tablekeyprefix, and if you use singleton_key you can't have either.
+        required: false
+        position: 4
+      singleton_key:
+        default: none
+        description: >
+          Get all the values in the table from a single named object.
+          Default: none, meaning don't just use a single object.
+          You can only have one of tablekeyset and tablekeyprefix, and if you use singleton_key you can't have either.
+        required: false
+        position: 5
