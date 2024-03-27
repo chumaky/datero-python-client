@@ -11,7 +11,7 @@ services:
       - ./oracle_setup.sql:/docker-entrypoint-initdb.d/startup/oracle_setup.sql
 
   mysql:
-    image: mysql
+    image: docker.io/mysql:latest
     container_name: datero_mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
