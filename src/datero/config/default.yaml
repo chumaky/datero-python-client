@@ -55,6 +55,12 @@ fdw_list:
       Access to data files is currently read-only.
     icon: file.svg
     position: 7
+  redis_fdw:
+    enabled: true
+    schema_name: datero_fdw
+    name: Redis
+    icon: redis.svg
+    position: 8
 
 
 # FDW options template
