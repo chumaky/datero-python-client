@@ -1,12 +1,19 @@
 """Parsing config file"""
 import os
-#import json
+import json
 
 from copy import deepcopy
 from ruamel.yaml import YAML
 
 from . import CONFIG_DIR, DEFAULT_CONFIG, USER_CONFIG
 
+FDW_SPEC_SECTIONS = [
+    'foreign_server',
+    'user_mapping',
+    'import_foreign_schema',
+    'create_foreign_table',
+    'foreign_table_column'
+]
 
 class ConfigParser:
     """Parsing config files"""
@@ -46,6 +53,8 @@ class ConfigParser:
         "Parse default config file"
         with open(self.default_config_file, encoding='utf-8') as f:
             self.default_params = self.yaml.load(f)
+        
+        self.transform_default_config()
 
 
     def parse_config(self):
@@ -70,3 +79,61 @@ class ConfigParser:
             elif bv is not None:
                 res[k] = deepcopy(bv)
         return res
+
+    def transform_default_config(self):
+        """
+        For "fdw_options" key in the default config file check for any drivers references denoted by "version" key.
+        If present, get corresponding driver options from the "fdw_spec" folder and merge them with the default config. 
+        """
+        for fdw_name in self.default_params['fdw_options']:
+            if 'version' in self.default_params['fdw_options'][fdw_name]:
+                print(f'Expanding {fdw_name} options...')
+                version = self.default_params['fdw_options'][fdw_name]['version']
+                fdw_spec_path = os.path.join(
+                    os.path.dirname(__file__), 
+                    CONFIG_DIR, 
+                    'fdw_spec',
+                    fdw_name,
+                    f'{version}.yaml'
+                ) 
+                with open(fdw_spec_path, encoding='utf-8') as f:
+                    fdw_spec = self.yaml.load(f)
+                
+                self.prepare_fdw_options(fdw_name, fdw_spec)
+
+
+    def prepare_fdw_options(self, fdw_name: str, fdw_spec: dict):
+        """
+        Basing on the given FDW specification, prepare FDW options with Datero added attributes. 
+        """
+        datero_fdw_options = self.default_params['fdw_options'][fdw_name]
+        result = {
+            'name': fdw_spec['name'], 
+            'version': fdw_spec['version'],
+            'driver_official_source': fdw_spec['source']
+        }
+
+        # passing through standard FDW sections
+        for section in FDW_SPEC_SECTIONS:
+            # if section is present in the datero config
+            # pick up its options from the specification in order specified in the datero config
+            if section in datero_fdw_options:
+                result[section] = {}
+                for idx, item in enumerate(datero_fdw_options[section]):
+                    if item in fdw_spec[section]:
+                        result[section][item] = fdw_spec[section][item]
+                        result[section][item]['position'] = idx
+
+            # if section is not present in the datero config
+            # pick up its options from the specification in order specified in the specification
+            elif section in fdw_spec:
+                result[section] = {}
+                for idx, item in enumerate(fdw_spec[section]):
+                    result[section][item] = fdw_spec[section][item]
+                    result[section][item]['position'] = idx
+
+        #print(json.dumps(result, indent=2))
+
+        # replace the original fdw_options with the expanded one
+        self.default_params['fdw_options'][fdw_name] = result
+            
