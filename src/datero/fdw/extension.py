@@ -45,16 +45,16 @@ class Extension:
 
 
     def init_extensions(self):
-        """Get list of enabled extensions"""
+        """Create FDW extensions from the config and if they are available in the system"""
         try:
             cur = self.conn.cursor
 
-            for ext, props in self.fdws.items():
-                if props['enabled']:
-                    sql = f'CREATE EXTENSION IF NOT EXISTS {ext} WITH SCHEMA {DATERO_FDW_SCHEMA};'
+            for fdw_name, props in self.fdws.items():
+                if props['enabled'] and any(fdw_name in fdw['name'] for fdw in self.fdw_list()):
+                    sql = f'CREATE EXTENSION IF NOT EXISTS {fdw_name} WITH SCHEMA {DATERO_FDW_SCHEMA};'
                     cur.execute(sql)
                     self.conn.commit()
-                    print(f'Extension "{ext}" successfully created')
+                    print(f'Extension "{fdw_name}" successfully created')
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql}')
