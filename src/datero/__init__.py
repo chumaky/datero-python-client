@@ -8,3 +8,4 @@ USER_CONFIG='config.yaml'
 CONNECTION='postgres'
 
 DATERO_SCHEMA = 'datero'
+DATERO_FDW_SCHEMA = 'datero_fdw'

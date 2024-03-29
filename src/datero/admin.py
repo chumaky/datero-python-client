@@ -3,7 +3,7 @@ from typing import Dict
 import psycopg2
 from psycopg2 import sql
 
-from . import CONNECTION, DATERO_SCHEMA
+from . import CONNECTION
 from .connection import Connection
 
 class Admin:
@@ -35,17 +35,17 @@ class Admin:
                 cur.close()
 
 
-    def create_system_schema(self):
+    def create_system_schema(self, schema_name: str):
         """Create system schema"""
         cur = self.conn.cursor
         try:
             query = sql.SQL('CREATE SCHEMA IF NOT EXISTS {datero_schema}') \
-                .format(datero_schema=sql.Identifier(DATERO_SCHEMA))
+                .format(datero_schema=sql.Identifier(schema_name))
 
             cur.execute(query)
 
             self.conn.commit()
-            print(f'System schema "{DATERO_SCHEMA}" successfully created')
+            print(f'System schema "{schema_name}" successfully created')
         except psycopg2.Error as e:
             self.conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')

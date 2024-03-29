@@ -2,7 +2,7 @@
 from typing import Dict
 import psycopg2
 
-from .. import CONNECTION
+from .. import CONNECTION, DATERO_FDW_SCHEMA
 from ..connection import Connection
 
 class Extension:
@@ -50,11 +50,8 @@ class Extension:
             cur = self.conn.cursor
 
             for ext, props in self.fdws.items():
-                schema_name = props['schema_name'] if props['schema_name'] is not None else ext
                 if props['enabled']:
-                    sql = f'CREATE SCHEMA IF NOT EXISTS {schema_name};'
-                    cur.execute(sql)
-                    sql = f'CREATE EXTENSION IF NOT EXISTS {ext} WITH SCHEMA {schema_name};'
+                    sql = f'CREATE EXTENSION IF NOT EXISTS {ext} WITH SCHEMA {DATERO_FDW_SCHEMA};'
                     cur.execute(sql)
                     self.conn.commit()
                     print(f'Extension "{ext}" successfully created')

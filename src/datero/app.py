@@ -4,7 +4,7 @@ from .config import ConfigParser
 from .fdw import Extension, Server, UserMapping, Schema
 from .admin import Admin
 from .connection import Connection
-from . import CONNECTION
+from . import CONNECTION, DATERO_SCHEMA, DATERO_FDW_SCHEMA
 
 class App:
     """main API interface"""
@@ -62,7 +62,8 @@ class App:
             print('WARNING: Config file is not specified. Used default config which could only install FDW extensions')
             print('WARNING: No foreign servers will be available')
 
-        self.admin.create_system_schema()
+        self.admin.create_system_schema(DATERO_SCHEMA)
+        self.admin.create_system_schema(DATERO_FDW_SCHEMA)
         self.extension.init_extensions()
 
         # TODO: disabling until CLI will be implemented as a ready-to-use API alternative
