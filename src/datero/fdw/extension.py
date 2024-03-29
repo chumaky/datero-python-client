@@ -49,8 +49,8 @@ class Extension:
         try:
             cur = self.conn.cursor
 
-            for fdw_name, props in self.fdws.items():
-                if props['enabled'] and any(fdw_name in fdw['name'] for fdw in self.fdw_list()):
+            for fdw_name in self.fdws:
+                if any(fdw_name in fdw['name'] for fdw in self.fdw_list()):
                     sql = f'CREATE EXTENSION IF NOT EXISTS {fdw_name} WITH SCHEMA {DATERO_FDW_SCHEMA};'
                     cur.execute(sql)
                     self.conn.commit()

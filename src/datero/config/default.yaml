@@ -8,51 +8,16 @@ postgres:
   password: postgres
 
 
+# Read-only list of available FDW extensions
 fdw_list:
-  mysql_fdw:
-    enabled: true
-    name: MySQL
-    icon: mysql.svg
-    position: 1
-  postgres_fdw:
-    enabled: true
-    name: Postgres
-    icon: postgresql.svg
-    position: 2
-  mongo_fdw:
-    enabled: true
-    name: MongoDB
-    icon: mongodb.svg
-    position: 3
-  oracle_fdw:
-    enabled: true
-    name: Oracle
-    icon: oracle.svg
-    position: 4
-  tds_fdw:
-    enabled: true
-    name: SQL Server
-    icon: mssql.svg
-    position: 5
-  sqlite_fdw:
-    enabled: true
-    name: SQLite
-    icon: sqlite.svg
-    position: 6
-  file_fdw:
-    enabled: true
-    name: File Access
-    description: >
-      Access data files in the server's file system, or to execute programs on the server and read their output.
-      The data file or program output must be in a format that can be read by Postgres' "COPY FROM" command.
-      Access to data files is currently read-only.
-    icon: file.svg
-    position: 7
-  redis_fdw:
-    enabled: true
-    name: Redis
-    icon: redis.svg
-    position: 8
+- file_fdw
+- mongo_fdw
+- mysql_fdw
+- oracle_fdw
+- postgres_fdw
+- redis_fdw
+- sqlite_fdw
+- tds_fdw
 
 
 # FDW options template
