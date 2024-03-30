@@ -49,17 +49,10 @@ fdw_list:
 # FDW options
 fdw_options:
   file_fdw:
+    version: 16.2.0
     create_foreign_table:
-      table_name:
-        description: Table name (optionally schema-qualified) to store file data.
-        required: true
-        position: 1
-      filename:
-        description: The path name of the input file. File name can be an absolute or relative path.
-        position: 2
-      program:
-        description: A command to execute. The input is read from standard output of the command.
-        position: 3
+    - filename
+    - program
 
 
   mongo_fdw:
@@ -101,6 +94,9 @@ fdw_options:
     user_mapping:
     - username
     - password
+
+    # presence of empty section is required to display Import Schema tab in UI
+    import_foreign_schema:
 
 
   oracle_fdw:

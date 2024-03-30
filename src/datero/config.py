@@ -111,7 +111,8 @@ class ConfigParser:
         result = {
             'name': fdw_spec['name'],
             'version': fdw_spec['version'],
-            'driver_official_source': fdw_spec['source']
+            'driver_official_source': fdw_spec['source'],
+            'advanced': {}
         }
 
         # passing through standard FDW sections
@@ -120,23 +121,40 @@ class ConfigParser:
             # pick up its options from the specification in order specified in the datero config
             if section in datero_fdw_options:
                 result[section] = {}
-                for idx, item in enumerate(datero_fdw_options[section]):
-                    if item in fdw_spec[section]:
-                        result[section][item] = fdw_spec[section][item]
-                        result[section][item]['position'] = idx
-                        # options listed in the datero config and having default value in the specification are mandatory
-                        # this is because they are exposed to the user and user has a capability to erase them.
-                        # we must ensure that they are present. either with the default value or with the user provided one
-                        if 'default' in result[section][item]:
-                            result[section][item]['required'] = True
+
+                # add minimum set of options expected by Datero if section contains any options
+                if datero_fdw_options[section]:
+                    for idx, item in enumerate(datero_fdw_options[section]):
+                        if item in fdw_spec[section]:
+                            result[section][item] = fdw_spec[section][item]
+                            result[section][item]['position'] = idx
+                            # options listed in the datero config and having default value in the specification are mandatory
+                            # this is because they are exposed to the user and user has a capability to erase them.
+                            # we must ensure that they are present. either with the default value or with the user provided one
+                            if 'default' in result[section][item]:
+                                result[section][item]['required'] = True
+
+                # add the rest of the options from the specification as advanced options
+                for item in fdw_spec[section]:
+                    if item not in result[section]:
+
+                        # initialize the advanced options section if it is not present
+                        if section not in result['advanced']:
+                            result['advanced'][section] = {}
+                            position = 0
+
+                        result['advanced'][section][item] = fdw_spec[section][item]
+                        result['advanced'][section][item]['position'] = position
+                        position += 1
 
             # if section is not present in the datero config
             # pick up its options from the specification in order specified in the specification
+            # and set them as advanced options
             elif section in fdw_spec:
-                result[section] = {}
+                result['advanced'][section] = {}
                 for idx, item in enumerate(fdw_spec[section]):
-                    result[section][item] = fdw_spec[section][item]
-                    result[section][item]['position'] = idx
+                    result['advanced'][section][item] = fdw_spec[section][item]
+                    result['advanced'][section][item]['position'] = idx
 
         #print(json.dumps(result, indent=2))
 
