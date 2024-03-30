@@ -53,7 +53,7 @@ class ConfigParser:
         "Parse default config file"
         with open(self.default_config_file, encoding='utf-8') as f:
             self.default_params = self.yaml.load(f)
-        
+
         self.transform_default_config()
 
 
@@ -84,32 +84,32 @@ class ConfigParser:
     def transform_default_config(self):
         """
         For "fdw_options" key in the default config file check for any drivers references denoted by "version" key.
-        If present, get corresponding driver options from the "fdw_spec" folder and merge them with the default config. 
+        If present, get corresponding driver options from the "fdw_spec" folder and merge them with the default config.
         """
         for fdw_name in self.default_params['fdw_options']:
             if 'version' in self.default_params['fdw_options'][fdw_name]:
                 print(f'Expanding {fdw_name} options...')
                 version = self.default_params['fdw_options'][fdw_name]['version']
                 fdw_spec_path = os.path.join(
-                    os.path.dirname(__file__), 
-                    CONFIG_DIR, 
+                    os.path.dirname(__file__),
+                    CONFIG_DIR,
                     'fdw_spec',
                     fdw_name,
                     f'{version}.yaml'
-                ) 
+                )
                 with open(fdw_spec_path, encoding='utf-8') as f:
                     fdw_spec = self.yaml.load(f)
-                
+
                 self.prepare_fdw_options(fdw_name, fdw_spec)
 
 
     def prepare_fdw_options(self, fdw_name: str, fdw_spec: dict):
         """
-        Basing on the given FDW specification, prepare FDW options with Datero added attributes. 
+        Basing on the given FDW specification, prepare FDW options with Datero added attributes.
         """
         datero_fdw_options = self.default_params['fdw_options'][fdw_name]
         result = {
-            'name': fdw_spec['name'], 
+            'name': fdw_spec['name'],
             'version': fdw_spec['version'],
             'driver_official_source': fdw_spec['source']
         }
@@ -125,7 +125,7 @@ class ConfigParser:
                         result[section][item] = fdw_spec[section][item]
                         result[section][item]['position'] = idx
                         # options listed in the datero config and having default value in the specification are mandatory
-                        # this is because they are exposed to the user and user has a capability to erase them. 
+                        # this is because they are exposed to the user and user has a capability to erase them.
                         # we must ensure that they are present. either with the default value or with the user provided one
                         if 'default' in result[section][item]:
                             result[section][item]['required'] = True
@@ -142,4 +142,4 @@ class ConfigParser:
 
         # replace the original fdw_options with the expanded one
         self.default_params['fdw_options'][fdw_name] = result
-            
+
