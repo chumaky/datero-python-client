@@ -80,6 +80,7 @@ class ConfigParser:
                 res[k] = deepcopy(bv)
         return res
 
+
     def transform_default_config(self):
         """
         For "fdw_options" key in the default config file check for any drivers references denoted by "version" key.
@@ -123,6 +124,11 @@ class ConfigParser:
                     if item in fdw_spec[section]:
                         result[section][item] = fdw_spec[section][item]
                         result[section][item]['position'] = idx
+                        # options listed in the datero config and having default value in the specification are mandatory
+                        # this is because they are exposed to the user and user has a capability to erase them. 
+                        # we must ensure that they are present. either with the default value or with the user provided one
+                        if 'default' in result[section][item]:
+                            result[section][item]['required'] = True
 
             # if section is not present in the datero config
             # pick up its options from the specification in order specified in the specification
