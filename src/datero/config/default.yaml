@@ -24,29 +24,35 @@ fdw_list:
 #
 # fdw_options:
 #   fdw_name:
+#     version: x.y.z          # reference to the driver specification version. see https://github.com/chumaky/postgres-fdw-spec
 #     <categories>
-#     advanced:
-#       <categories>
+#     [advanced:              # advanced sections are added dynamically as part of configuration parsing.
+#       <categories>]         # all non used in categories attributes from specification are considered advanced.
 #
 # <categories> =
 #   foreign_server:
-#     <option>
+#   [- option_name
+#    ...
+#    - option_name]
 #   user_mapping:
-#     <option>
-#   import_foreign_schema:
-#     <option>
+#   [- option_name
+#    ...
+#    - option_name]
+#   import_foreign_schema:    # section presence, even if empty, is required to display corresponding Tab in UI
+#   [- option_name
+#    ...
+#    - option_name]
 #   create_foreign_table:
-#     <option>
-#
-# <option> =
-#   option:
-#     required: true | false
-#     default:
-#     description:
-#     position:
+#   [- option_name
+#    ...
+#    - option_name]
+#   foreign_table_column:
+#   [- option_name
+#    ...
+#    - option_name]
 
 
-# FDW options
+# Read-only FDW options
 fdw_options:
   file_fdw:
     version: 16.2.0
@@ -56,33 +62,14 @@ fdw_options:
 
 
   mongo_fdw:
+    version: 5.5.1
     foreign_server:
-      address:
-        default: 127.0.0.1
-        description: Address or hostname of the MongoDB server. Defaults to 127.0.0.1
-        required: true
-        position: 1
-      port:
-        default: 27017
-        description: Port number of the MongoDB server. Defaults to 27017.
-        required: true
-        position: 2
-      authentication_database:
-        description: >
-          Database against which user will be authenticated against.
-          Only valid with password based authentication.
-        required: true
-        position: 3
-
+    - address
+    - port
+    - authentication_database
     user_mapping:
-      username:
-        description: Username to use when connecting to MongoDB.
-        required: true
-        position: 1
-      password:
-        description: Password to authenticate to the MongoDB server.
-        required: true
-        position: 2
+    - username
+    - password
 
 
   mysql_fdw:
@@ -90,142 +77,61 @@ fdw_options:
     foreign_server:
     - host
     - port
-
     user_mapping:
     - username
     - password
-
-    # presence of empty section is required to display Import Schema tab in UI
+    # section presence, even if empty, is required to display Import Schema tab in UI
     import_foreign_schema:
 
 
   oracle_fdw:
+    version: 2.6.0
     foreign_server:
-      dbserver:
-        description: Database server connection string
-        required: true
-        position: 1
-
+    - dbserver
     user_mapping:
-      user:
-        description: >
-          The Oracle user name for the session.
-          Set this to an empty string for external authentication if you don't want to store Oracle credentials
-          in the PostgreSQL database (one simple way is to use an external password store).
-        required: true
-        position: 1
-      password:
-        description: The password for the Oracle user.
-        required: true
-        position: 2
-
+    - user
+    - password
+    # section presence, even if empty, is required to display Import Schema tab in UI
     import_foreign_schema:
-      remote_schema:
-        description: Remote schema in Oracle server to import from.
-        required: true
-        position: 1
-      local_schema:
-        description: Local schema in which imported foreign tables will be created.
-        required: true
-        position: 2
 
 
   sqlite_fdw:
+    version: 2.4.0
     foreign_server:
-      database:
-        description: >
-          Path to the filename with SQLite database.
-          File must be reachable on the server's file system where HSQL is running on
-        required: true
-        position: 1
-
+    - database
+    # section presence, even if empty, is required to display Import Schema tab in UI
+    #
+    # Note: sqlite doesn't have schemas. to support common IMPORT FOREIGN SCHEMA syntax
+    # it's required to use any dummy value for a remote_schema parameter.
+    # IMPORT FOREIGN SCHEMA "some_schema" FROM SERVER sqlite_server INTO public;
+    # "some_schema" has no particular meaning for sqlite and can be set to an arbitrary value.
     import_foreign_schema:
-      # Note: sqlite doesn't have schemas. to support common IMPORT FOREIGN SCHEMA syntax
-      # it's required to use any dummy value for a remote_schema parameter.
-      # IMPORT FOREIGN SCHEMA "some_schema" FROM SERVER sqlite_server INTO public;
-      # "some_schema" has no particular meaning for sqlite and can be set to an arbitrary value.
-      local_schema:
-        description: The schema in which the imported foreign tables will be created.
-        required: true
-        position: 1
 
 
   tds_fdw:
+    version: master_2.0.3
     foreign_server:
-      servername:
-        description: Database server hostname
-        required: true
-        position: 1
-      port:
-        default: 1433
-        description: Database port number
-        required: true
-        position: 2
-      database:
-        description: Database name
-        required: true
-        position: 3
-
+    - servername
+    - port
+    - database
     user_mapping:
-      username:
-        description: Username to use when connecting to the MSSQL/Sybase server.
-        required: true
-        position: 1
-      password:
-        description: Password to authenticate to the MSSQL/Sybase server.
-        required: true
-        position: 2
-
+    - username
+    - password
+    # section presence, even if empty, is required to display Import Schema tab in UI
     import_foreign_schema:
-      remote_schema:
-        description: Remote schema in MSSQL/Sybase server to import from.
-        required: true
-        position: 1
-      local_schema:
-        description: Local schema in which imported foreign tables will be created.
-        required: true
-        position: 2
 
 
   postgres_fdw:
+    version: 16.2.0
     foreign_server:
-      host:
-        default: 127.0.0.1
-        description: Address or hostname of the PostgreSQL server. Defaults to 127.0.0.1
-        required: true
-        position: 1
-      port:
-        default: 5432
-        description: Port number of the PostgreSQL server. Defaults to 5432
-        required: true
-        position: 2
-      dbname:
-        default: postgres
-        description: The database name. Defaults to be the same as the user name.
-        required: true
-        position: 3
-
+    - host
+    - port
+    - dbname
     user_mapping:
-      user:
-        default: postgres
-        description: PostgreSQL user name to connect as. Defaults to postgres.
-        required: true
-        position: 1
-      password:
-        default: postgres
-        description: Password to be used if the server demands password authentication. Defaults to user name.
-        required: true
-        position: 2
-
+    - user
+    - password
+    # section presence, even if empty, is required to display Import Schema tab in UI
     import_foreign_schema:
-      remote_schema:
-        description: Remote schema in PostgreSQL server to import from.
-        required: true
-        position: 1
-      local_schema:
-        description: Local schema in which imported foreign tables will be created.
-        required: true
-        position: 2
 
 
   redis_fdw:
@@ -233,10 +139,8 @@ fdw_options:
     foreign_server:
     - address
     - port
-
     user_mapping:
     - password
-
     create_foreign_table:
     - database
     - tabletype
