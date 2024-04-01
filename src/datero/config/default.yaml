@@ -125,11 +125,17 @@ fdw_options:
     version: 16.2.0
     foreign_server:
     - host
-    - port
-    - dbname
+    - port:
+        default: 5432
+        data_type: integer
+    - dbname:
+        default: postgres
     user_mapping:
-    - user
-    - password
+    - user:
+        default: postgres
+    - password:
+        default: postgres
+
     # section presence, even if empty, is required to display Import Schema tab in UI
     import_foreign_schema:
 

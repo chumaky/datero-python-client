@@ -115,6 +115,23 @@ class ConfigParser:
             'advanced': {}
         }
 
+        def set_default_flag(section: str, item: str) -> None:
+            """
+            Options listed in the datero config and having default value in the specification are mandatory.
+            This is because they are exposed to the user and user has a capability to erase them.
+            We must ensure that they are present. Either with the default value or with the user provided one
+            """
+            if 'default' in result[section][item]:
+                result[section][item]['required'] = True
+
+        def set_advanced_attribute(section: str, item: str, position: int) -> None:
+            """
+            Set non-referenced by Datero attribute from the specification as advanced.
+            """
+            result['advanced'][section][item] = fdw_spec[section][item]
+            result['advanced'][section][item]['position'] = position
+
+
         # passing through standard FDW sections
         for section in FDW_SPEC_SECTIONS:
             # if section is present in the datero config
@@ -125,26 +142,34 @@ class ConfigParser:
                 # add minimum set of options expected by Datero if section contains any options
                 if datero_fdw_options[section]:
                     for idx, item in enumerate(datero_fdw_options[section]):
-                        if item in fdw_spec[section]:
+                        # if option in datero config is scalar
+                        # it means that it has no override attributes and we can just copy its definition from fdw_spec
+                        if isinstance(datero_fdw_options[section][idx], str) and item in fdw_spec[section]:
                             result[section][item] = fdw_spec[section][item]
                             result[section][item]['position'] = idx
-                            # options listed in the datero config and having default value in the specification are mandatory
-                            # this is because they are exposed to the user and user has a capability to erase them.
-                            # we must ensure that they are present. either with the default value or with the user provided one
-                            if 'default' in result[section][item]:
-                                result[section][item]['required'] = True
 
-                # add the rest of the options from the specification as advanced options
+                            set_default_flag(section, item)
+
+                        # if option in datero config is dict and not scalar
+                        # it means that it has some additional and/or override attributes over the fdw_spec
+                        # other non-matched attributes from fdw_spec will be preserved
+                        elif isinstance(datero_fdw_options[section][idx], dict):
+                            key = list(item.keys())[0]  # get the dict key name
+                            if key in fdw_spec[section]:
+                                result[section][key] = self.deep_merge(fdw_spec[section][key], item[key])
+                                result[section][key]['position'] = idx
+
+                            set_default_flag(section, key)
+
+                # add the rest of the options for the given section from the specification as advanced options
                 for item in fdw_spec[section]:
                     if item not in result[section]:
-
                         # initialize the advanced options section if it is not present
                         if section not in result['advanced']:
                             result['advanced'][section] = {}
                             position = 0
 
-                        result['advanced'][section][item] = fdw_spec[section][item]
-                        result['advanced'][section][item]['position'] = position
+                        set_advanced_attribute(section, item, position)
                         position += 1
 
             # if section is not present in the datero config
@@ -153,8 +178,7 @@ class ConfigParser:
             elif section in fdw_spec:
                 result['advanced'][section] = {}
                 for idx, item in enumerate(fdw_spec[section]):
-                    result['advanced'][section][item] = fdw_spec[section][item]
-                    result['advanced'][section][item]['position'] = idx
+                    set_advanced_attribute(section, item, idx)
 
         #print(json.dumps(result, indent=2))
 
