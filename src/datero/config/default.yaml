@@ -1,5 +1,6 @@
 # validation schema: schema.yaml
 
+# Connection settings for the PostgreSQL server. Could be overridden.
 postgres:
   hostname: localhost
   port: 5432
@@ -52,7 +53,7 @@ fdw_list:
 #    - option_name]
 
 
-# Read-only FDW options
+# Read-only FDW options which define the structure of the configuration form on the UI
 fdw_options:
   file_fdw:
     version: 16.2.0

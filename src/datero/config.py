@@ -5,7 +5,7 @@ import json
 from copy import deepcopy
 from ruamel.yaml import YAML
 
-from . import CONFIG_DIR, DEFAULT_CONFIG, USER_CONFIG
+from . import CONFIG_DIR, DEFAULT_CONFIG, USER_CONFIG, CONNECTION
 
 FDW_SPEC_SECTIONS = [
     'foreign_server',
@@ -58,15 +58,20 @@ class ConfigParser:
 
 
     def parse_config(self):
-        "Parse user config file and merge it with default config"
+        """
+        Parse different config files and merge them into one configuration.
+        Levels of precedence:
+        - default config file
+        - user config file
+        - environment variables
+        - command line arguments
+        """
         self.parse_default_config()
 
-        if self.user_config_file is not None:
-            with open(self.user_config_file, encoding='utf-8') as f:
-                self.user_params = self.yaml.load(f)
-
-        self.params = self.deep_merge(self.default_params, self.user_params)
-        #print('result', json.dumps(self.params, indent=2))
+        self.params = deepcopy(self.default_params)
+        
+        self.apply_user_config()
+        self.apply_env_config()
 
 
     def deep_merge(self, a: dict, b: dict) -> dict:
@@ -185,3 +190,38 @@ class ConfigParser:
         # replace the original fdw_options with the expanded one
         self.default_params['fdw_options'][fdw_name] = result
 
+
+    def apply_user_config(self):
+        """
+        If user config file is present, apply it on top of the the default config.
+        """
+        if self.user_config_file is not None:
+            with open(self.user_config_file, encoding='utf-8') as f:
+                self.user_params = self.yaml.load(f)
+
+        #print('config', json.dumps(self.params, indent=2))
+
+        self.params[CONNECTION].update({
+            'hostname': self.user_params[CONNECTION].get('hostname', self.params[CONNECTION]['hostname']),
+            'port'    : self.user_params[CONNECTION].get('port'    , self.params[CONNECTION]['port'    ]),
+            'database': self.user_params[CONNECTION].get('database', self.params[CONNECTION]['database']),
+            'username': self.user_params[CONNECTION].get('username', self.params[CONNECTION]['username']),
+            'password': self.user_params[CONNECTION].get('password', self.params[CONNECTION]['password'])
+        })
+
+
+    def apply_env_config(self):
+        """
+        Apply environment variables to the configuration.
+        """
+        self.params[CONNECTION].update({
+            # datero specific variables
+            'hostname': os.environ.get('POSTGRES_HOST'      , self.params[CONNECTION]['hostname']),
+            'port'    : os.environ.get('POSTGRES_PORT'      , self.params[CONNECTION]['port'    ]),
+            # official postgres images variables
+            'database': os.environ.get('POSTGRES_DB'        , self.params[CONNECTION]['database']),
+            'username': os.environ.get('POSTGRES_USER'      , self.params[CONNECTION]['username']),
+            'password': os.environ.get('POSTGRES_PASSWORD'  , self.params[CONNECTION]['password'])
+        })
+
+        #print('connection', json.dumps(self.params[CONNECTION], indent=2))

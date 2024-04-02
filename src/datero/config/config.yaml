@@ -1,11 +1,16 @@
-# for list of available options see "default.yaml" and "schema.yaml"
+# user config file
+# it allows to override connection attribute values defined by the `postgres` key
+# also, it allows to define foreign servers that will be automatically created on startup
 
 # section placeholders to override default values
+# uncomment and set the values to override default value for any attribute
 postgres:
+#  hostname: localhost
+#  port: 5432
+#  database: postgres
+#  username: postgres
+#  password: postgres
 
-fdw_list:
-
-servers:
 
 # Example: foreign servers
 # servers:
