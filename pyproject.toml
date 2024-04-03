@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"datero.config" = ["*.yaml"]
+"datero.config" = ["**/*.yaml"]
 
 [project]
 name = "datero"
@@ -23,7 +23,14 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-keywords = ["postgres", "fdw", "hsql"]
+keywords = [
+  "data virtualization", 
+  "federated sql", 
+  "data federation", 
+  "postgres", 
+  "fdw", 
+  "sql"
+]
 dependencies = [
   "psycopg2",
   "ruamel.yaml"
