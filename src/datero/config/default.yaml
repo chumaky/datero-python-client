@@ -113,7 +113,8 @@ fdw_options:
     version: master_2.0.3
     foreign_server:
     - servername
-    - port
+    - port:
+        default: 1433
     - database
     user_mapping:
     - username
