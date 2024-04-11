@@ -209,6 +209,9 @@ class ConfigParser:
             'password': self.user_params[CONNECTION].get('password', self.params[CONNECTION]['password'])
         })
 
+        if 'servers' in self.user_params:
+            self.params['servers'] = self.user_params['servers']
+
 
     def apply_env_config(self):
         """

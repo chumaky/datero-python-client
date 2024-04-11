@@ -67,6 +67,6 @@ class App:
         self.extension.init_extensions()
 
         # TODO: disabling until CLI will be implemented as a ready-to-use API alternative
-        #self.server.init_servers()
+        self.server.init_servers()
         #self.user.init_user_mappings()
         #self.schema.init_foreign_schemas()

@@ -3,6 +3,7 @@
 from typing import Dict
 import psycopg2
 from psycopg2 import sql
+from copy import deepcopy
 
 from .. import CONNECTION
 from ..connection import Connection
@@ -88,27 +89,23 @@ class Server:
         """Create foreign servers defined in config if any"""
         try:
             cur = self.conn.cursor
+            print('Creating foreign servers from config.yaml:', len(self.servers))
 
-            for server, props in self.servers.items():
-                stmt = \
-                    'CREATE SERVER IF NOT EXISTS {server} ' \
-                    'FOREIGN DATA WRAPPER {fdw_name} ' \
-                    'OPTIONS ({options})'
+            for server_name, props in self.servers.items():
+                server = self.get_server(server_name)
 
-                options, values = options_and_values(props['foreign_server'])
-
-                query = sql.SQL(stmt).format(
-                    server=sql.Identifier(server),
-                    fdw_name=sql.Identifier(props['fdw_name']),
-                    options=options
-                )
-
-                cur.execute(query, values)
-                self.conn.commit()
-                print(f'Foreign server "{server}" successfully created')
+                if server is not None:
+                    print(f'Server "{server_name}" already exists. Skipping...')
+                else:
+                    server = deepcopy(props)
+                    server['server_name'] = server_name
+                    #print(f'Input: {server}')
+                    
+                    self.create_server(props)
+                    
         except psycopg2.Error as e:
             self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}')
         finally:
             cur.close()
 
