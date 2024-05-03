@@ -19,6 +19,7 @@ fdw_list:
 - redis_fdw
 - sqlite_fdw
 - tds_fdw
+- duckdb_fdw
 
 
 # FDW options template
@@ -155,3 +156,17 @@ fdw_options:
     - tablekeyprefix
     - tablekeyset
     - singleton_key
+
+
+  duckdb_fdw:
+    version: 2.1.1
+    foreign_server:
+    - database
+    # section presence, even if empty, is required to display Import Schema tab in UI
+    #
+    # Note: Duckdb doesn't have any custom parameters for IMPORT FOREIGN SCHEMA command.
+    # To correspond to the common command syntax it's required to use any dummy value for a remote_schema parameter.
+    # IMPORT FOREIGN SCHEMA "some_schema" FROM SERVER duckdb_server INTO public;
+    # "some_schema" has no particular meaning for duckdb_server and can be set to an arbitrary value.
+    # entry itself must be specified to enable Schema Import tab
+    import_foreign_schema:

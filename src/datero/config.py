@@ -167,15 +167,16 @@ class ConfigParser:
                             set_default_flag(section, key)
 
                 # add the rest of the options for the given section from the specification as advanced options
-                for item in fdw_spec[section]:
-                    if item not in result[section]:
-                        # initialize the advanced options section if it is not present
-                        if section not in result['advanced']:
-                            result['advanced'][section] = {}
-                            position = 0
+                if section in fdw_spec:
+                    for item in fdw_spec[section]:
+                        if item not in result[section]:
+                            # initialize the advanced options section if it is not present
+                            if section not in result['advanced']:
+                                result['advanced'][section] = {}
+                                position = 0
 
-                        set_advanced_attribute(section, item, position)
-                        position += 1
+                            set_advanced_attribute(section, item, position)
+                            position += 1
 
             # if section is not present in the datero config
             # pick up its options from the specification in order specified in the specification

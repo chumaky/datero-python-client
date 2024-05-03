@@ -104,7 +104,7 @@ class Schema:
 
                 self.conn.commit()
 
-            elif fdw_name == FdwType.SQLITE.value:
+            elif fdw_name == FdwType.SQLITE.value or fdw_name == FdwType.DUCKDB.value:
                 res = ['public']
 
             if len(res) > 0:

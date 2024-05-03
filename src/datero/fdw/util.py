@@ -30,6 +30,8 @@ class FdwType(Enum):
     TDS = 'tds_fdw'
     SQLITE = 'sqlite_fdw'
     FILE = 'file_fdw'
+    REDIS = 'redis_fdw'
+    DUCKDB = 'duckdb_fdw'
 
 class ImportType(Enum):
     """Schema/Table import levels"""
