@@ -87,27 +87,30 @@ class Server:
 
     def init_servers(self):
         """Create foreign servers defined in config if any"""
-        try:
-            cur = self.conn.cursor
-            print('Creating foreign servers from config.yaml:', len(self.servers))
+        if self.servers:
+            try:
+                cur = self.conn.cursor
+                print('Creating foreign servers from config.yaml:', len(self.servers))
 
-            for server_name, props in self.servers.items():
-                server = self.get_server(server_name)
+                for server_name, props in self.servers.items():
+                    server = self.get_server(server_name)
 
-                if server is not None:
-                    print(f'Server "{server_name}" already exists. Skipping...')
-                else:
-                    server = deepcopy(props)
-                    server['server_name'] = server_name
-                    #print(f'Input: {server}')
-                    
-                    self.create_server(props)
-                    
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}')
-        finally:
-            cur.close()
+                    if server is not None:
+                        print(f'Server "{server_name}" already exists. Skipping...')
+                    else:
+                        server = deepcopy(props)
+                        server['server_name'] = server_name
+                        #print(f'Input: {server}')
+                        
+                        self.create_server(props)
+                        
+            except psycopg2.Error as e:
+                self.conn.rollback()
+                print(f'Error code: {e.pgcode}, Message: {e.pgerror}')
+            finally:
+                cur.close()
+        else:
+            print('No foreign servers defined in config.yaml. Nothing to create.')
 
 
     def create_server_by_name(self, server_name: str):
