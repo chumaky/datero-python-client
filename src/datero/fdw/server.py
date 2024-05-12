@@ -6,7 +6,7 @@ from psycopg2 import sql
 from copy import deepcopy
 
 from .. import CONNECTION
-from ..connection import Connection
+from ..connection import ConnectionPool
 from ..adapter import Adapter
 from .user import UserMapping
 from .util import options_and_values
@@ -18,7 +18,7 @@ class Server:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.conn = Connection(self.config[CONNECTION])
+        self.pool = ConnectionPool(self.config[CONNECTION])
         self.user_mapping = UserMapping(self.config)
 
     @property
@@ -30,7 +30,6 @@ class Server:
     def server_list(self):
         """Get list of foreign servers"""
         try:
-            cur = self.conn.cursor
             query = """
                 SELECT fs.srvname                      AS server_name
                      , fdw.fdwname                     AS fdw_name
@@ -57,6 +56,10 @@ class Server:
                    AND d.objsubid                      = 0
                  ORDER BY d.description
             """
+
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
+
             cur.execute(query)
             rows = cur.fetchall()
 
@@ -68,15 +71,14 @@ class Server:
                 'user_mapping': val[4]
             } for val in rows]
 
-            self.conn.commit()
             return res
 
         except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            print(f'server_list: Error code: {e.pgcode}, Message: {e.pgerror}, SQL: {query}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def get_server(self, server_name: str) -> Dict:
@@ -89,8 +91,9 @@ class Server:
         """Create foreign servers defined in config if any"""
         if self.servers:
             try:
-                cur = self.conn.cursor
+                conn = self.pool.get_conn()
                 print('Creating foreign servers from config.yaml:', len(self.servers))
+                cur = conn.cursor()
 
                 for server_name, props in self.servers.items():
                     server = self.get_server(server_name)
@@ -101,14 +104,15 @@ class Server:
                         server = deepcopy(props)
                         server['server_name'] = server_name
                         #print(f'Input: {server}')
-                        
+
                         self.create_server(props)
-                        
+
             except psycopg2.Error as e:
-                self.conn.rollback()
+                conn.rollback()
                 print(f'Error code: {e.pgcode}, Message: {e.pgerror}')
             finally:
                 cur.close()
+                self.pool.put_conn(conn)
         else:
             print('No foreign servers defined in config.yaml. Nothing to create.')
 
@@ -121,7 +125,8 @@ class Server:
     def create_server(self, data: Dict):
         """Create foreign server"""
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             server_name = self.gen_server_name(data)
             stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
@@ -154,24 +159,31 @@ class Server:
             self.set_description(server_name, data['description'])
             self.create_sys_views(server_name, data['fdw_name'])
 
-            self.conn.commit()
+            conn.commit()
 
             print(f'Foreign server "{server_name}" successfully created')
 
             return self.get_server(server_name)
 
         except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            conn.rollback()
+            if cur is not None and query is not None:
+                sql_stmt = query.as_string(cur)
+            else:
+                sql_stmt = stmt
+
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def update_server(self, data: Dict):
         """Update foreign server"""
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             self.set_description(data['server_name'], data['description'])
 
@@ -194,24 +206,31 @@ class Server:
                     data['user_mapping']
                 )
 
-            self.conn.commit()
+            conn.commit()
 
             print(f'Foreign server "{data["server_name"]}" successfully updated')
 
             return self.get_server(data["server_name"])
 
         except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            conn.rollback()
+            if cur is not None and query is not None:
+                sql_stmt = query.as_string(cur)
+            else:
+                sql_stmt = stmt
+
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def delete_server(self, data: Dict):
         """Delete foreign server"""
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             stmt = 'DROP SERVER {server} CASCADE'
             query = sql.SQL(stmt).format(
@@ -227,7 +246,7 @@ class Server:
                 cur.execute(query)
                 print(f'Schema "{schema}" successfully deleted')
 
-            self.conn.commit()
+            conn.commit()
 
             msg = f'Server "{data["description"]}" successfully deleted'
             print(msg)
@@ -235,16 +254,24 @@ class Server:
             return { 'message': msg }
 
         except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            conn.rollback()
+            if cur is not None and query is not None:
+                sql_stmt = query.as_string(cur)
+            else:
+                sql_stmt = stmt
+
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def gen_server_name(self, data: Dict):
         """Generate server name"""
-        with self.conn.cursor as cur:
+        conn = self.pool.get_conn()
+
+        with conn.cursor() as cur:
             query = r"""
                 SELECT COALESCE
                        (MAX(CASE
@@ -266,17 +293,24 @@ class Server:
             server_name = data['fdw_name'] + '_' + str(row[0])
             print(f'New server name: {server_name}')
 
-            return server_name
+        self.pool.put_conn(conn)
+
+        return server_name
+        
 
 
     def set_description(self, server_name: str, description: str):
         """Update user-defined name"""
-        with self.conn.cursor as cur:
+        conn = self.pool.get_conn()
+
+        with conn.cursor() as cur:
             stmt = 'COMMENT ON SERVER {server} IS %s'
             query = sql.SQL(stmt).format(
                 server=sql.Identifier(server_name)
             )
             cur.execute(query, (description,))
+
+        self.pool.put_conn(conn)
 
 
     def create_sys_views(self, server_name: str, fdw_name: str):
@@ -288,7 +322,9 @@ class Server:
 
     def create_foreign_table(self, stmt: str, server_name: str, table_name: str):
         """Create helper dictionary foreign table in a public schema"""
-        with self.conn.cursor as cur:
+        conn = self.pool.get_conn()
+
+        with conn.cursor() as cur:
             if stmt is not None:
                 query = sql.SQL(stmt).format(
                     full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
@@ -297,12 +333,15 @@ class Server:
                 cur.execute(query)
                 print(f'"{table_name}" system table for "{server_name}" server successfully created')
 
+        self.pool.put_conn(conn)
+
 
     # get list of imported schemas
     def get_imported_schemas(self, server_name: str):
         """Get list of imported schemas by specified server"""
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             query = r"""
                 SELECT nsp.nspname      AS schema_name
@@ -315,13 +354,14 @@ class Server:
             cur.execute(query, {'comment': f'{server_name}#{DATERO_SCHEMA}#%'})
 
             res = [row[0] for row in cur.fetchall()]
-            self.conn.commit()
+            conn.commit()
 
             return res
 
         except psycopg2.Error as e:
-            self.conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            conn.rollback()
+            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query} : {server_name}#{DATERO_SCHEMA}#%')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)

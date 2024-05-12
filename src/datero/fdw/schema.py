@@ -6,7 +6,7 @@ from psycopg2 import sql
 
 from .. import CONNECTION
 from ..adapter import Adapter
-from ..connection import Connection
+from ..connection import ConnectionPool
 from .util import options_and_values, FdwType
 from .. import DATERO_SCHEMA
 
@@ -15,7 +15,7 @@ class Schema:
 
     def __init__(self, config: Dict):
         self.config = config
-        self.conn = Connection(self.config[CONNECTION])
+        self.pool = ConnectionPool(self.config[CONNECTION])
 
     @property
     def servers(self):
@@ -38,7 +38,8 @@ class Schema:
             cur.execute(query)
 
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             for server, props in self.servers.items():
                 ##print(f'{server} - {props}')
@@ -73,13 +74,14 @@ class Schema:
                     )
                     cur.execute(query)
 
-                self.conn.commit()
+                conn.commit()
                 print(f'Foreign schema "{remote_schema}" from server "{server}" successfully imported into "{local_schema}"')
         except psycopg2.Error as e:
-            self.conn.rollback()
+            conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def get_foreign_schema_list(self, server_name: str, fdw_name: str):
@@ -91,7 +93,8 @@ class Schema:
 
         res = []
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             if stmt is not None:
                 query = sql.SQL(stmt).format(
@@ -102,7 +105,7 @@ class Schema:
 
                 res = [val[0] for val in rows]
 
-                self.conn.commit()
+                conn.commit()
 
             elif fdw_name == FdwType.SQLITE.value or fdw_name == FdwType.DUCKDB.value:
                 res = ['public']
@@ -115,11 +118,12 @@ class Schema:
             return res
 
         except psycopg2.Error as e:
-            self.conn.rollback()
+            conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def import_foreign_schema(self, data: Dict):
@@ -136,7 +140,8 @@ class Schema:
             cur.execute(query)
 
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
 
             server_name = data['server_name']
             remote_schema = data['remote_schema']
@@ -171,33 +176,36 @@ class Schema:
                 )
                 cur.execute(query)
 
-            self.conn.commit()
+            conn.commit()
             print(f'Foreign schema "{remote_schema}" from server "{server_name}" successfully imported into "{local_schema}"')
 
             return data
 
         except psycopg2.Error as e:
-            self.conn.rollback()
+            conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def set_description(self, server_name: str, remote_schema: str, local_schema: str):
         """Update user-defined name"""
-        with self.conn.cursor as cur:
+        conn = self.pool.get_conn()
+        with conn.cursor() as cur:
             stmt = 'COMMENT ON SCHEMA {schema} IS %s'
             query = sql.SQL(stmt).format(
                 schema=sql.Identifier(local_schema)
             )
             cur.execute(query, (f'{server_name}#{DATERO_SCHEMA}#{remote_schema}',))
 
+        self.pool.put_conn(conn)
+
 
     def get_local_schema_list(self):
         """Get list of local schemas with set of categorization flags"""
         try:
-            cur = self.conn.cursor
             query = r"""
                 SELECT n.nspname            AS schema_name
                   FROM pg_namespace         n
@@ -216,26 +224,30 @@ class Schema:
                      )
                  ORDER BY n.nspname
             """
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
             cur.execute(query, {'datero': DATERO_SCHEMA})
             rows = cur.fetchall()
 
             res = [val[0] for val in rows]
 
-            self.conn.commit()
+            conn.commit()
             return res
 
         except psycopg2.Error as e:
-            self.conn.rollback()
+            conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def get_local_schema_objects(self, schema_name: str):
         """Get list of local schema objects"""
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
             query = r"""
                 SELECT c.relname            AS object_name
                      , c.relkind            AS object_type
@@ -269,21 +281,23 @@ class Schema:
                 'object_type': val[1]
             } for val in rows]
 
-            self.conn.commit()
+            conn.commit()
             return res
 
         except psycopg2.Error as e:
-            self.conn.rollback()
+            conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)
 
 
     def get_object_details(self, schema_name: str, object_name: str, object_type: str):
         """Get list of columns for a given table/view"""
         try:
-            cur = self.conn.cursor
+            conn = self.pool.get_conn()
+            cur = conn.cursor()
             query = r"""
                 SELECT c.relname                                AS object_name
                      , c.relkind                                AS object_type
@@ -339,12 +353,13 @@ class Schema:
                 'columns': row[2]
             } if row is not None else None
 
-            self.conn.commit()
+            conn.commit()
             return res
 
         except psycopg2.Error as e:
-            self.conn.rollback()
+            conn.rollback()
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
             raise e
         finally:
             cur.close()
+            self.pool.put_conn(conn)

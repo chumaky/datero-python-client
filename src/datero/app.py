@@ -3,7 +3,7 @@
 from .config import ConfigParser
 from .fdw import Extension, Server, UserMapping, Schema
 from .admin import Admin
-from .connection import Connection
+from .connection import ConnectionPool
 from . import CONNECTION, DATERO_SCHEMA, DATERO_FDW_SCHEMA
 
 class App:
@@ -20,8 +20,8 @@ class App:
         self.user = UserMapping(self.config)
         self.schema = Schema(self.config)
 
-        # exposing connection object for outer usage by Query functionality
-        self.conn = Connection(self.config[CONNECTION])
+        # exposing connection pool object for outer usage by Query functionality
+        self.pool = ConnectionPool(self.config[CONNECTION])
 
 
     @property
