@@ -1,5 +1,6 @@
 """Singleton class for postgres database connection"""
 from typing import Dict
+from contextlib import contextmanager
 
 from .pool import RestartableConnectionPool
 
@@ -28,8 +29,8 @@ class ConnectionPool:
 
 
     def __del__(self):
-        if hasattr(self, 'conn') and self.conn is not None:
-            self.conn.close()
+        if hasattr(self, 'pool') and self.pool is not None:
+            self.pool.closeall()
 
 
     def init_pool(self):
@@ -49,6 +50,15 @@ class ConnectionPool:
     def get_conn(self):
         return self.pool.getconn()
 
+
     def put_conn(self, conn):
         self.pool.putconn(conn)
 
+
+    @contextmanager
+    def connection(self):
+        conn = self.get_conn()
+        try:
+            yield conn
+        finally:
+            self.put_conn(conn)

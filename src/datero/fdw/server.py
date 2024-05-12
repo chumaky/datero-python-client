@@ -29,40 +29,39 @@ class Server:
 
     def server_list(self):
         """Get list of foreign servers"""
+        query = """
+            SELECT fs.srvname                      AS server_name
+                 , fdw.fdwname                     AS fdw_name
+                 , d.description                   AS description
+                 , (
+                     SELECT json_object_agg(fso.option_name, fso.option_value)
+                       FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
+                   )                               AS options
+                 , (
+                     SELECT json_object_agg(umo.option_name, umo.option_value)
+                       FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
+                   )                               AS user_mapping
+              FROM pg_foreign_server               fs
+             INNER JOIN
+                   pg_foreign_data_wrapper         fdw
+                ON fdw.oid                         = fs.srvfdw
+              LEFT JOIN
+                   pg_user_mappings                um
+                ON um.srvname                      = fs.srvname
+              LEFT JOIN
+                   pg_description                  d
+                ON d.classoid                      = fs.tableoid
+               AND d.objoid                        = fs.oid
+               AND d.objsubid                      = 0
+             ORDER BY d.description
+        """
+    
         try:
-            query = """
-                SELECT fs.srvname                      AS server_name
-                     , fdw.fdwname                     AS fdw_name
-                     , d.description                   AS description
-                     , (
-                         SELECT json_object_agg(fso.option_name, fso.option_value)
-                           FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
-                       )                               AS options
-                     , (
-                         SELECT json_object_agg(umo.option_name, umo.option_value)
-                           FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
-                       )                               AS user_mapping
-                  FROM pg_foreign_server               fs
-                 INNER JOIN
-                       pg_foreign_data_wrapper         fdw
-                    ON fdw.oid                         = fs.srvfdw
-                  LEFT JOIN
-                       pg_user_mappings                um
-                    ON um.srvname                      = fs.srvname
-                  LEFT JOIN
-                       pg_description                  d
-                    ON d.classoid                      = fs.tableoid
-                   AND d.objoid                        = fs.oid
-                   AND d.objsubid                      = 0
-                 ORDER BY d.description
-            """
-
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
-
-            cur.execute(query)
-            rows = cur.fetchall()
-
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query)
+                    rows = cur.fetchall()
+    
             res = [{
                 'server_name': val[0],
                 'fdw_name': val[1],
@@ -70,15 +69,12 @@ class Server:
                 'options': val[3],
                 'user_mapping': val[4]
             } for val in rows]
-
+    
             return res
-
+    
         except psycopg2.Error as e:
             print(f'server_list: Error code: {e.pgcode}, Message: {e.pgerror}, SQL: {query}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def get_server(self, server_name: str) -> Dict:
@@ -90,29 +86,18 @@ class Server:
     def init_servers(self):
         """Create foreign servers defined in config if any"""
         if self.servers:
-            try:
-                conn = self.pool.get_conn()
-                print('Creating foreign servers from config.yaml:', len(self.servers))
-                cur = conn.cursor()
+            print('Creating foreign servers from config.yaml:', len(self.servers))
+            for server_name, props in self.servers.items():
+                server = self.get_server(server_name)
 
-                for server_name, props in self.servers.items():
-                    server = self.get_server(server_name)
+                if server is not None:
+                    print(f'Server "{server_name}" already exists. Skipping...')
+                else:
+                    server = deepcopy(props)
+                    server['server_name'] = server_name
+                    #print(f'Input: {server}')
 
-                    if server is not None:
-                        print(f'Server "{server_name}" already exists. Skipping...')
-                    else:
-                        server = deepcopy(props)
-                        server['server_name'] = server_name
-                        #print(f'Input: {server}')
-
-                        self.create_server(props)
-
-            except psycopg2.Error as e:
-                conn.rollback()
-                print(f'Error code: {e.pgcode}, Message: {e.pgerror}')
-            finally:
-                cur.close()
-                self.pool.put_conn(conn)
+                    self.create_server(props)
         else:
             print('No foreign servers defined in config.yaml. Nothing to create.')
 
@@ -125,45 +110,45 @@ class Server:
     def create_server(self, data: Dict):
         """Create foreign server"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
+            with self.pool.get_conn() as conn:
+                with conn.cursor() as cur:
 
-            server_name = self.gen_server_name(data)
-            stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
+                    server_name = self.gen_server_name(data)
+                    stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
 
-            key = 'options'
-            if key in data and len(data[key]) > 0:
-                stmt += ' OPTIONS ({options})'
-                options, values = options_and_values(data[key])
+                    key = 'options'
+                    if key in data and len(data[key]) > 0:
+                        stmt += ' OPTIONS ({options})'
+                        options, values = options_and_values(data[key])
 
-                query = sql.SQL(stmt).format(
-                    server=sql.Identifier(server_name),
-                    fdw_name=sql.Identifier(data['fdw_name']),
-                    options=options
-                )
-                cur.execute(query, values)
-            else:
-                query = sql.SQL(stmt).format(
-                    server=sql.Identifier(server_name),
-                    fdw_name=sql.Identifier(data['fdw_name'])
-                )
-                cur.execute(query)
+                        query = sql.SQL(stmt).format(
+                            server=sql.Identifier(server_name),
+                            fdw_name=sql.Identifier(data['fdw_name']),
+                            options=options
+                        )
+                        cur.execute(query, values)
+                    else:
+                        query = sql.SQL(stmt).format(
+                            server=sql.Identifier(server_name),
+                            fdw_name=sql.Identifier(data['fdw_name'])
+                        )
+                        cur.execute(query)
 
-            key = 'user_mapping'
-            if key in data and len(data[key]) > 0:
-                self.user_mapping.create_user_mapping(
-                    server_name,
-                    data['user_mapping']
-                )
+                    key = 'user_mapping'
+                    if key in data and len(data[key]) > 0:
+                        self.user_mapping.create_user_mapping(
+                            server_name,
+                            data['user_mapping']
+                        )
 
-            self.set_description(server_name, data['description'])
-            self.create_sys_views(server_name, data['fdw_name'])
+                    self.set_description(server_name, data['description'])
+                    self.create_sys_views(server_name, data['fdw_name'])
 
-            conn.commit()
+                    conn.commit()
 
-            print(f'Foreign server "{server_name}" successfully created')
+                    print(f'Foreign server "{server_name}" successfully created')
 
-            return self.get_server(server_name)
+                    return self.get_server(server_name)
 
         except psycopg2.Error as e:
             conn.rollback()
@@ -174,9 +159,6 @@ class Server:
 
             print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def update_server(self, data: Dict):
