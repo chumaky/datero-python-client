@@ -55,13 +55,13 @@ class Server:
                AND d.objsubid                      = 0
              ORDER BY d.description
         """
-    
+
         try:
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query)
                     rows = cur.fetchall()
-    
+
             res = [{
                 'server_name': val[0],
                 'fdw_name': val[1],
@@ -69,11 +69,11 @@ class Server:
                 'options': val[3],
                 'user_mapping': val[4]
             } for val in rows]
-    
+
             return res
-    
+
         except psycopg2.Error as e:
-            print(f'server_list: Error code: {e.pgcode}, Message: {e.pgerror}, SQL: {query}')
+            print(f'server_list: Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
             raise e
 
 
@@ -110,11 +110,12 @@ class Server:
     def create_server(self, data: Dict):
         """Create foreign server"""
         try:
-            with self.pool.get_conn() as conn:
+            with self.pool.connection() as conn:
                 with conn.cursor() as cur:
 
                     server_name = self.gen_server_name(data)
                     stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
+                    values = None
 
                     key = 'options'
                     if key in data and len(data[key]) > 0:
@@ -126,60 +127,55 @@ class Server:
                             fdw_name=sql.Identifier(data['fdw_name']),
                             options=options
                         )
-                        cur.execute(query, values)
                     else:
                         query = sql.SQL(stmt).format(
                             server=sql.Identifier(server_name),
                             fdw_name=sql.Identifier(data['fdw_name'])
                         )
-                        cur.execute(query)
 
-                    key = 'user_mapping'
-                    if key in data and len(data[key]) > 0:
-                        self.user_mapping.create_user_mapping(
-                            server_name,
-                            data['user_mapping']
-                        )
+                    stmt = query.as_string(cur)
+                    cur.execute(query, values)
 
-                    self.set_description(server_name, data['description'])
-                    self.create_sys_views(server_name, data['fdw_name'])
+            key = 'user_mapping'
+            if key in data and len(data[key]) > 0:
+                self.user_mapping.create_user_mapping(
+                    server_name,
+                    data['user_mapping']
+                )
 
-                    conn.commit()
+            self.set_description(server_name, data['description'])
+            self.create_sys_views(server_name, data['fdw_name'])
 
-                    print(f'Foreign server "{server_name}" successfully created')
+            print(f'Foreign server "{server_name}" successfully created')
 
-                    return self.get_server(server_name)
+            return self.get_server(server_name)
 
         except psycopg2.Error as e:
-            conn.rollback()
-            if cur is not None and query is not None:
-                sql_stmt = query.as_string(cur)
-            else:
-                sql_stmt = stmt
-
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}\nValues: {values}')
             raise e
 
 
     def update_server(self, data: Dict):
         """Update foreign server"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
 
-            self.set_description(data['server_name'], data['description'])
+                    self.set_description(data['server_name'], data['description'])
 
-            key = 'options'
-            if key in data and len(data[key]) > 0:
-                stmt = 'ALTER SERVER {server} OPTIONS ({options})'
-                options, values = options_and_values(data[key], is_update=True)
+                    values = None
+                    key = 'options'
+                    if key in data and len(data[key]) > 0:
+                        stmt = 'ALTER SERVER {server} OPTIONS ({options})'
+                        options, values = options_and_values(data[key], is_update=True)
 
-                query = sql.SQL(stmt).format(
-                    server=sql.Identifier(data['server_name']),
-                    fdw_name=sql.Identifier(data['fdw_name']),
-                    options=options
-                )
-                cur.execute(query, values)
+                        query = sql.SQL(stmt).format(
+                            server=sql.Identifier(data['server_name']),
+                            fdw_name=sql.Identifier(data['fdw_name']),
+                            options=options
+                        )
+                        stmt = query.as_string(cur)
+                        cur.execute(query, values)
 
             key = 'user_mapping'
             if key in data and len(data[key]) > 0:
@@ -188,47 +184,34 @@ class Server:
                     data['user_mapping']
                 )
 
-            conn.commit()
-
             print(f'Foreign server "{data["server_name"]}" successfully updated')
 
             return self.get_server(data["server_name"])
 
         except psycopg2.Error as e:
-            conn.rollback()
-            if cur is not None and query is not None:
-                sql_stmt = query.as_string(cur)
-            else:
-                sql_stmt = stmt
-
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}\nValues: {values}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def delete_server(self, data: Dict):
         """Delete foreign server"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
 
-            stmt = 'DROP SERVER {server} CASCADE'
-            query = sql.SQL(stmt).format(
-                server=sql.Identifier(data["server_name"]),
-            )
-            cur.execute(query)
+                    stmt = 'DROP SERVER {server} CASCADE'
+                    query = sql.SQL(stmt).format(
+                        server=sql.Identifier(data["server_name"]),
+                    )
+                    cur.execute(query)
 
-            stmt = 'DROP SCHEMA {schema} CASCADE'
-            for schema in self.get_imported_schemas(data["server_name"]):
-                query = sql.SQL(stmt).format(
-                    schema=sql.Identifier(schema)
-                )
-                cur.execute(query)
-                print(f'Schema "{schema}" successfully deleted')
-
-            conn.commit()
+                    stmt = 'DROP SCHEMA {schema} CASCADE'
+                    for schema in self.get_imported_schemas(data["server_name"]):
+                        query = sql.SQL(stmt).format(
+                            schema=sql.Identifier(schema)
+                        )
+                        cur.execute(query)
+                        print(f'Schema "{schema}" successfully deleted')
 
             msg = f'Server "{data["description"]}" successfully deleted'
             print(msg)
@@ -236,63 +219,48 @@ class Server:
             return { 'message': msg }
 
         except psycopg2.Error as e:
-            conn.rollback()
-            if cur is not None and query is not None:
-                sql_stmt = query.as_string(cur)
-            else:
-                sql_stmt = stmt
-
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {sql_stmt}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def gen_server_name(self, data: Dict):
         """Generate server name"""
-        conn = self.pool.get_conn()
+        query = r"""
+            SELECT COALESCE
+                (MAX(CASE
+                        WHEN fs.srvname LIKE fdw.fdwname || '\_%%'
+                        THEN REPLACE(fs.srvname, fdw.fdwname || '_', '')::INT
+                        ELSE 0
+                    END)
+                , 0) + 1                        AS next_server_id
+            FROM pg_foreign_server               fs
+            INNER JOIN
+                pg_foreign_data_wrapper         fdw
+                ON fdw.oid                         = fs.srvfdw
+            WHERE fdw.fdwname = %(fdw_name)s
+        """
 
-        with conn.cursor() as cur:
-            query = r"""
-                SELECT COALESCE
-                       (MAX(CASE
-                              WHEN fs.srvname LIKE fdw.fdwname || '\_%%'
-                              THEN REPLACE(fs.srvname, fdw.fdwname || '_', '')::INT
-                              ELSE 0
-                           END)
-                       , 0) + 1                        AS next_server_id
-                  FROM pg_foreign_server               fs
-                 INNER JOIN
-                       pg_foreign_data_wrapper         fdw
-                    ON fdw.oid                         = fs.srvfdw
-                 WHERE fdw.fdwname = %(fdw_name)s
-            """
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, {'fdw_name': data['fdw_name']})
+                row = cur.fetchone()
 
-            cur.execute(query, {'fdw_name': data['fdw_name']})
-            row = cur.fetchone()
-
-            server_name = data['fdw_name'] + '_' + str(row[0])
-            print(f'New server name: {server_name}')
-
-        self.pool.put_conn(conn)
+                server_name = data['fdw_name'] + '_' + str(row[0])
+                print(f'New server name: {server_name}')
 
         return server_name
-        
 
 
     def set_description(self, server_name: str, description: str):
         """Update user-defined name"""
-        conn = self.pool.get_conn()
-
-        with conn.cursor() as cur:
-            stmt = 'COMMENT ON SERVER {server} IS %s'
-            query = sql.SQL(stmt).format(
-                server=sql.Identifier(server_name)
-            )
-            cur.execute(query, (description,))
-
-        self.pool.put_conn(conn)
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                stmt = 'COMMENT ON SERVER {server} IS %s'
+                query = sql.SQL(stmt).format(
+                    server=sql.Identifier(server_name)
+                )
+                cur.execute(query, (description,))
+                print(f'Description for "{server_name}" server successfully updated')
 
 
     def create_sys_views(self, server_name: str, fdw_name: str):
@@ -304,27 +272,21 @@ class Server:
 
     def create_foreign_table(self, stmt: str, server_name: str, table_name: str):
         """Create helper dictionary foreign table in a public schema"""
-        conn = self.pool.get_conn()
-
-        with conn.cursor() as cur:
-            if stmt is not None:
-                query = sql.SQL(stmt).format(
-                    full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
-                    server=sql.Identifier(server_name)
-                )
-                cur.execute(query)
-                print(f'"{table_name}" system table for "{server_name}" server successfully created')
-
-        self.pool.put_conn(conn)
+        if stmt is not None:
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    query = sql.SQL(stmt).format(
+                        full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
+                        server=sql.Identifier(server_name)
+                    )
+                    cur.execute(query)
+                    print(f'"{table_name}" system table for "{server_name}" server successfully created')
 
 
     # get list of imported schemas
     def get_imported_schemas(self, server_name: str):
         """Get list of imported schemas by specified server"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
-
             query = r"""
                 SELECT nsp.nspname      AS schema_name
                   FROM pg_namespace     nsp
@@ -333,17 +295,13 @@ class Server:
                     ON dsc.objoid       = nsp.oid
                  WHERE dsc.description  LIKE %(comment)s
             """
-            cur.execute(query, {'comment': f'{server_name}#{DATERO_SCHEMA}#%'})
-
-            res = [row[0] for row in cur.fetchall()]
-            conn.commit()
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, {'comment': f'{server_name}#{DATERO_SCHEMA}#%'})
+                    res = [row[0] for row in cur.fetchall()]
 
             return res
 
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query} : {server_name}#{DATERO_SCHEMA}#%')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query} : {server_name}#{DATERO_SCHEMA}#%')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)

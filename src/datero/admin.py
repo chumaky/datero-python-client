@@ -18,42 +18,34 @@ class Admin:
     def healthcheck(self):
         """Check database availability"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
+            version = '1.1.0'
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    query = f"SELECT 'Connected' AS status, '{version}' AS version, now() AS heartbeat"
+                    cur.execute(query)
 
-            query = "SELECT 'Connected' AS status, '1.1.0' AS version, now() AS heartbeat"
-            cur.execute(query)
+                    row = cur.fetchone()
 
-            row = cur.fetchone()
             res = { 'status': row[0], 'version': row[1], 'heartbeat': row[2] }
-
             return res
+        
         except psycopg2.Error as e:
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}, SQL: {query}')
-            res = { 'status': 'Not connected', 'version': '1.1.0', 'heartbeat': datetime.datetime.now() }
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
+            res = { 'status': 'Not connected', 'version': version, 'heartbeat': datetime.datetime.now() }
             return res
             #raise e
-        finally:
-            if cur is not None:
-                cur.close()
-            self.pool.put_conn(conn)
 
 
     def create_system_schema(self, schema_name: str):
         """Create system schema"""
-        conn = self.pool.get_conn()
-        cur = conn.cursor()
         try:
-            query = sql.SQL('CREATE SCHEMA IF NOT EXISTS {datero_schema}') \
-                .format(datero_schema=sql.Identifier(schema_name))
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    query = sql.SQL('CREATE SCHEMA IF NOT EXISTS {datero_schema}') \
+                        .format(datero_schema=sql.Identifier(schema_name))
+                    stmt = query.as_string(cur)
+                    cur.execute(query)
 
-            cur.execute(query)
-
-            conn.commit()
             print(f'System schema "{schema_name}" successfully created')
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}')

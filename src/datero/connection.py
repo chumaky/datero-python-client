@@ -7,8 +7,8 @@ from .pool import RestartableConnectionPool
 
 class ConnectionPool:
     """Connection Pool Singleton class"""
-    MIN_CONNECTIONS = 2
-    MAX_CONNECTIONS = 4
+    MIN_CONNECTIONS = 1
+    MAX_CONNECTIONS = 2
 
     def __new__(cls, *_):
         """Connection object is singleton"""
@@ -60,5 +60,9 @@ class ConnectionPool:
         conn = self.get_conn()
         try:
             yield conn
+        except Exception:
+            conn.rollback()  # rollback changes in case of error
+            raise
         finally:
+            conn.commit()  # commit changes before returning the connection
             self.put_conn(conn)

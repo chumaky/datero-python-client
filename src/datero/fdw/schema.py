@@ -78,7 +78,7 @@ class Schema:
                 print(f'Foreign schema "{remote_schema}" from server "{server}" successfully imported into "{local_schema}"')
         except psycopg2.Error as e:
             conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query.as_string(cur)}')
         finally:
             cur.close()
             self.pool.put_conn(conn)
@@ -119,7 +119,7 @@ class Schema:
 
         except psycopg2.Error as e:
             conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query.as_string(cur)}')
             raise e
         finally:
             cur.close()
@@ -183,7 +183,7 @@ class Schema:
 
         except psycopg2.Error as e:
             conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query.as_string(cur)}')
             raise e
         finally:
             cur.close()
@@ -224,23 +224,21 @@ class Schema:
                      )
                  ORDER BY n.nspname
             """
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
-            cur.execute(query, {'datero': DATERO_SCHEMA})
-            rows = cur.fetchall()
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, {'datero': DATERO_SCHEMA})
+                    rows = cur.fetchall()
 
-            res = [val[0] for val in rows]
+                    res = [val[0] for val in rows]
 
-            conn.commit()
+                    conn.commit()
+
             return res
 
         except psycopg2.Error as e:
             conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def get_local_schema_objects(self, schema_name: str):
@@ -286,7 +284,7 @@ class Schema:
 
         except psycopg2.Error as e:
             conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
             raise e
         finally:
             cur.close()
@@ -358,7 +356,7 @@ class Schema:
 
         except psycopg2.Error as e:
             conn.rollback()
-            print(f'Error code: {e.pgcode}, Message: {e.pgerror}' f'SQL: {query}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
             raise e
         finally:
             cur.close()
