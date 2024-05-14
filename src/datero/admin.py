@@ -19,11 +19,11 @@ class Admin:
         """Check database availability"""
         try:
             version = '1.1.0'
+            query = f"SELECT 'Connected' AS status, '{version}' AS version, now() AS heartbeat"
+
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-                    query = f"SELECT 'Connected' AS status, '{version}' AS version, now() AS heartbeat"
                     cur.execute(query)
-
                     row = cur.fetchone()
 
             res = { 'status': row[0], 'version': row[1], 'heartbeat': row[2] }
@@ -39,6 +39,7 @@ class Admin:
     def create_system_schema(self, schema_name: str):
         """Create system schema"""
         try:
+            stmt = None
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     query = sql.SQL('CREATE SCHEMA IF NOT EXISTS {datero_schema}') \

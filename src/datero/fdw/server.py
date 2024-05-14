@@ -110,13 +110,12 @@ class Server:
     def create_server(self, data: Dict):
         """Create foreign server"""
         try:
+            server_name = self.gen_server_name(data)
+            stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
+            values = None
+
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-
-                    server_name = self.gen_server_name(data)
-                    stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
-                    values = None
-
                     key = 'options'
                     if key in data and len(data[key]) > 0:
                         stmt += ' OPTIONS ({options})'
@@ -158,12 +157,12 @@ class Server:
     def update_server(self, data: Dict):
         """Update foreign server"""
         try:
+            self.set_description(data['server_name'], data['description'])
+            stmt = None
+            values = None
+
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-
-                    self.set_description(data['server_name'], data['description'])
-
-                    values = None
                     key = 'options'
                     if key in data and len(data[key]) > 0:
                         stmt = 'ALTER SERVER {server} OPTIONS ({options})'
@@ -196,6 +195,8 @@ class Server:
     def delete_server(self, data: Dict):
         """Delete foreign server"""
         try:
+            stmt = None
+
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
 
@@ -211,6 +212,7 @@ class Server:
                             schema=sql.Identifier(schema)
                         )
                         cur.execute(query)
+                        conn.commit()   # explicitly commit every schema deletion
                         print(f'Schema "{schema}" successfully deleted')
 
             msg = f'Server "{data["description"]}" successfully deleted'
@@ -245,8 +247,8 @@ class Server:
                 cur.execute(query, {'fdw_name': data['fdw_name']})
                 row = cur.fetchone()
 
-                server_name = data['fdw_name'] + '_' + str(row[0])
-                print(f'New server name: {server_name}')
+        server_name = data['fdw_name'] + '_' + str(row[0])
+        print(f'New server name: {server_name}')
 
         return server_name
 

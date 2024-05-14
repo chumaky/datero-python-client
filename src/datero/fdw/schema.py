@@ -38,50 +38,51 @@ class Schema:
             cur.execute(query)
 
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
+            stmt = None
+            values = None            
 
-            for server, props in self.servers.items():
-                ##print(f'{server} - {props}')
-                conf = props['import_foreign_schema']
-                remote_schema = conf['remote_schema']
-                local_schema = conf['local_schema']
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    for server, props in self.servers.items():
+                        ##print(f'{server} - {props}')
+                        conf = props['import_foreign_schema']
+                        remote_schema = conf['remote_schema']
+                        local_schema = conf['local_schema']
 
-                recreate_schema()
+                        recreate_schema()
 
-                stmt = \
-                    'IMPORT FOREIGN SCHEMA {remote_schema} ' \
-                    'FROM SERVER {server} ' \
-                    'INTO {local_schema}'
+                        stmt = \
+                            'IMPORT FOREIGN SCHEMA {remote_schema} ' \
+                            'FROM SERVER {server} ' \
+                            'INTO {local_schema}'
 
-                key = 'options'
-                if key in conf and len(conf[key]) > 0:
-                    stmt += ' OPTIONS({options})'
-                    options, values = options_and_values(conf[key])
+                        values = None
+                        key = 'options'
+                        if key in conf and len(conf[key]) > 0:
+                            stmt += ' OPTIONS({options})'
+                            options, values = options_and_values(conf[key])
 
-                    query = sql.SQL(stmt).format(
-                        remote_schema=sql.Identifier(remote_schema),
-                        server=sql.Identifier(server),
-                        local_schema=sql.Identifier(local_schema),
-                        options=options
-                    )
-                    cur.execute(query, values)
-                else:
-                    query = sql.SQL(stmt).format(
-                        remote_schema=sql.Identifier(remote_schema),
-                        server=sql.Identifier(server),
-                        local_schema=sql.Identifier(local_schema),
-                    )
-                    cur.execute(query)
+                            query = sql.SQL(stmt).format(
+                                remote_schema=sql.Identifier(remote_schema),
+                                server=sql.Identifier(server),
+                                local_schema=sql.Identifier(local_schema),
+                                options=options
+                            )
+                        else:
+                            query = sql.SQL(stmt).format(
+                                remote_schema=sql.Identifier(remote_schema),
+                                server=sql.Identifier(server),
+                                local_schema=sql.Identifier(local_schema),
+                            )
 
-                conn.commit()
-                print(f'Foreign schema "{remote_schema}" from server "{server}" successfully imported into "{local_schema}"')
+                        stmt = query.as_string(cur)
+                        cur.execute(query, values)
+                        conn.commit()   # explicitly commit every schema import
+
+                        print(f'Foreign schema "{remote_schema}" from server "{server}" successfully imported into "{local_schema}"')
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query.as_string(cur)}')
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}\nValues: {values}')
+            raise e
 
 
     def get_foreign_schema_list(self, server_name: str, fdw_name: str):
@@ -93,19 +94,17 @@ class Schema:
 
         res = []
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
-
             if stmt is not None:
-                query = sql.SQL(stmt).format(
-                    full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
-                )
-                cur.execute(query)
-                rows = cur.fetchall()
+                with self.pool.connection() as conn:
+                    with conn.cursor() as cur:
+                        query = sql.SQL(stmt).format(
+                            full_table_name=sql.Identifier(DATERO_SCHEMA, table_name),
+                        )
+                        stmt = query.as_string(cur)
+                        cur.execute(query)
+                        rows = cur.fetchall()
 
                 res = [val[0] for val in rows]
-
-                conn.commit()
 
             elif fdw_name == FdwType.SQLITE.value or fdw_name == FdwType.DUCKDB.value:
                 res = ['public']
@@ -118,17 +117,15 @@ class Schema:
             return res
 
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def import_foreign_schema(self, data: Dict):
         """Import foreign schema"""
+
         def recreate_schema():
+            """Recreate schema"""
             query = sql.SQL('DROP SCHEMA IF EXISTS {local_schema} CASCADE') \
                 .format(local_schema=sql.Identifier(local_schema))
 
@@ -139,68 +136,57 @@ class Schema:
 
             cur.execute(query)
 
-        try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
+        def set_description():
+            """Set description for schema"""
+            query = sql.SQL('COMMENT ON SCHEMA {schema} IS %s') \
+                .format(schema=sql.Identifier(local_schema)
+                                    )
+            cur.execute(query, (f'{server_name}#{DATERO_SCHEMA}#{remote_schema}',))
 
+        try:
             server_name = data['server_name']
             remote_schema = data['remote_schema']
             local_schema = data['local_schema']
 
             import_options = data['options'] if 'options' in data else None
 
-            recreate_schema()
-            self.set_description(server_name, remote_schema, local_schema)
-
+            values = None
             stmt = \
                 'IMPORT FOREIGN SCHEMA {remote_schema} ' \
                 'FROM SERVER {server} ' \
                 'INTO {local_schema}'
 
-            if import_options is not None and len(import_options) > 0:
-                stmt += ' OPTIONS({options})'
-                options, values = options_and_values(import_options)
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    recreate_schema()
+                    set_description()
 
-                query = sql.SQL(stmt).format(
-                    remote_schema=sql.Identifier(remote_schema),
-                    server=sql.Identifier(server_name),
-                    local_schema=sql.Identifier(local_schema),
-                    options=options
-                )
-                cur.execute(query, values)
-            else:
-                query = sql.SQL(stmt).format(
-                    remote_schema=sql.Identifier(remote_schema),
-                    server=sql.Identifier(server_name),
-                    local_schema=sql.Identifier(local_schema),
-                )
-                cur.execute(query)
+                    if import_options is not None and len(import_options) > 0:
+                        stmt += ' OPTIONS({options})'
+                        options, values = options_and_values(import_options)
 
-            conn.commit()
-            print(f'Foreign schema "{remote_schema}" from server "{server_name}" successfully imported into "{local_schema}"')
+                        query = sql.SQL(stmt).format(
+                            remote_schema=sql.Identifier(remote_schema),
+                            server=sql.Identifier(server_name),
+                            local_schema=sql.Identifier(local_schema),
+                            options=options
+                        )
+                    else:
+                        query = sql.SQL(stmt).format(
+                            remote_schema=sql.Identifier(remote_schema),
+                            server=sql.Identifier(server_name),
+                            local_schema=sql.Identifier(local_schema),
+                        )
+
+                    stmt = query.as_string(cur)
+                    cur.execute(query, values)
+                    print(f'Foreign schema "{remote_schema}" from server "{server_name}" successfully imported into "{local_schema}"')
 
             return data
 
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query.as_string(cur)}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}\nValues: {values}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
-
-
-    def set_description(self, server_name: str, remote_schema: str, local_schema: str):
-        """Update user-defined name"""
-        conn = self.pool.get_conn()
-        with conn.cursor() as cur:
-            stmt = 'COMMENT ON SCHEMA {schema} IS %s'
-            query = sql.SQL(stmt).format(
-                schema=sql.Identifier(local_schema)
-            )
-            cur.execute(query, (f'{server_name}#{DATERO_SCHEMA}#{remote_schema}',))
-
-        self.pool.put_conn(conn)
 
 
     def get_local_schema_list(self):
@@ -229,14 +215,10 @@ class Schema:
                     cur.execute(query, {'datero': DATERO_SCHEMA})
                     rows = cur.fetchall()
 
-                    res = [val[0] for val in rows]
-
-                    conn.commit()
-
+            res = [val[0] for val in rows]
             return res
 
         except psycopg2.Error as e:
-            conn.rollback()
             print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
             raise e
 
@@ -244,8 +226,6 @@ class Schema:
     def get_local_schema_objects(self, schema_name: str):
         """Get list of local schema objects"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
             query = r"""
                 SELECT c.relname            AS object_name
                      , c.relkind            AS object_type
@@ -271,31 +251,26 @@ class Schema:
                        object_type
                      , object_name
             """
-            cur.execute(query, {'schema_name': schema_name, 'datero': DATERO_SCHEMA})
-            rows = cur.fetchall()
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, {'schema_name': schema_name, 'datero': DATERO_SCHEMA})
+                    rows = cur.fetchall()
 
             res = [{
                 'object_name': val[0],
                 'object_type': val[1]
             } for val in rows]
 
-            conn.commit()
             return res
 
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}\nSchema: {schema_name}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
 
 
     def get_object_details(self, schema_name: str, object_name: str, object_type: str):
         """Get list of columns for a given table/view"""
         try:
-            conn = self.pool.get_conn()
-            cur = conn.cursor()
             query = r"""
                 SELECT c.relname                                AS object_name
                      , c.relkind                                AS object_type
@@ -337,13 +312,16 @@ class Schema:
                        object_type
                      , object_name
             """
-            cur.execute(query, {
+            params = {
                 'schema_name': schema_name,
                 'object_name': object_name,
                 'object_type': object_type,
                 'datero': DATERO_SCHEMA
-            })
-            row = cur.fetchone()
+            }
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, params)
+                    row = cur.fetchone()
 
             res = {
                 'object_name': row[0],
@@ -351,13 +329,8 @@ class Schema:
                 'columns': row[2]
             } if row is not None else None
 
-            conn.commit()
             return res
 
         except psycopg2.Error as e:
-            conn.rollback()
-            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}\nParams: {params}')
             raise e
-        finally:
-            cur.close()
-            self.pool.put_conn(conn)
