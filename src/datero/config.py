@@ -200,18 +200,20 @@ class ConfigParser:
             with open(self.user_config_file, encoding='utf-8') as f:
                 self.user_params = self.yaml.load(f)
 
-        #print('config', json.dumps(self.params, indent=2))
+        # check if user config contains any parameters
+        if self.user_params is not None:
+            if CONNECTION in self.user_params and self.user_params[CONNECTION] is not None:
+                self.params[CONNECTION].update({
+                    'hostname': self.user_params[CONNECTION].get('hostname', self.params[CONNECTION]['hostname']),
+                    'port'    : self.user_params[CONNECTION].get('port'    , self.params[CONNECTION]['port'    ]),
+                    'database': self.user_params[CONNECTION].get('database', self.params[CONNECTION]['database']),
+                    'username': self.user_params[CONNECTION].get('username', self.params[CONNECTION]['username']),
+                    'password': self.user_params[CONNECTION].get('password', self.params[CONNECTION]['password'])
+                })
 
-        self.params[CONNECTION].update({
-            'hostname': self.user_params[CONNECTION].get('hostname', self.params[CONNECTION]['hostname']),
-            'port'    : self.user_params[CONNECTION].get('port'    , self.params[CONNECTION]['port'    ]),
-            'database': self.user_params[CONNECTION].get('database', self.params[CONNECTION]['database']),
-            'username': self.user_params[CONNECTION].get('username', self.params[CONNECTION]['username']),
-            'password': self.user_params[CONNECTION].get('password', self.params[CONNECTION]['password'])
-        })
-
-        if 'servers' in self.user_params:
-            self.params['servers'] = self.user_params['servers']
+            key = 'servers'
+            if key in self.user_params and self.user_params[key] is not None:
+                self.params[key] = self.user_params[key]
 
 
     def apply_env_config(self):
