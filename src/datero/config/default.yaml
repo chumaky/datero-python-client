@@ -84,7 +84,8 @@ fdw_options:
     - password
     # section presence, even if empty, is required to display Import Schema tab in UI
     import_foreign_schema:
-
+    create_foreign_table:
+    - dbname
 
   oracle_fdw:
     version: 2.6.0
