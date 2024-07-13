@@ -99,6 +99,7 @@ fdw_options:
     # section presence, even if empty, is required to display corresponding tab in UI
     import_foreign_schema:
     create_foreign_table:
+    - table
 
 
   sqlite_fdw:
@@ -128,6 +129,8 @@ fdw_options:
     # section presence, even if empty, is required to display corresponding tab in UI
     import_foreign_schema:
     create_foreign_table:
+    - query
+    - table_name
 
 
   postgres_fdw:
