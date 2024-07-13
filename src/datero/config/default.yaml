@@ -72,6 +72,8 @@ fdw_options:
     user_mapping:
     - username
     - password
+    # section presence, even if empty, is required to display corresponding tab in UI
+    create_foreign_table:
 
 
   mysql_fdw:
@@ -94,21 +96,23 @@ fdw_options:
     user_mapping:
     - user
     - password
-    # section presence, even if empty, is required to display Import Schema tab in UI
+    # section presence, even if empty, is required to display corresponding tab in UI
     import_foreign_schema:
+    create_foreign_table:
 
 
   sqlite_fdw:
     version: 2.4.0
     foreign_server:
     - database
-    # section presence, even if empty, is required to display Import Schema tab in UI
+    # section presence, even if empty, is required to display corresponding tab in UI
     #
     # Note: sqlite doesn't have schemas. to support common IMPORT FOREIGN SCHEMA syntax
     # it's required to use any dummy value for a remote_schema parameter.
     # IMPORT FOREIGN SCHEMA "some_schema" FROM SERVER sqlite_server INTO public;
     # "some_schema" has no particular meaning for sqlite and can be set to an arbitrary value.
     import_foreign_schema:
+    create_foreign_table:
 
 
   tds_fdw:
@@ -121,8 +125,9 @@ fdw_options:
     user_mapping:
     - username
     - password
-    # section presence, even if empty, is required to display Import Schema tab in UI
+    # section presence, even if empty, is required to display corresponding tab in UI
     import_foreign_schema:
+    create_foreign_table:
 
 
   postgres_fdw:
@@ -140,8 +145,9 @@ fdw_options:
     - password:
         default: postgres
 
-    # section presence, even if empty, is required to display Import Schema tab in UI
+    # section presence, even if empty, is required to display corresponding tab in UI
     import_foreign_schema:
+    create_foreign_table:
 
 
   redis_fdw:
@@ -163,7 +169,7 @@ fdw_options:
     version: 2.1.1
     foreign_server:
     - database
-    # section presence, even if empty, is required to display Import Schema tab in UI
+    # section presence, even if empty, is required to display corresponding tab in UI
     #
     # Note: Duckdb doesn't have any custom parameters for IMPORT FOREIGN SCHEMA command.
     # To correspond to the common command syntax it's required to use any dummy value for a remote_schema parameter.
@@ -171,3 +177,4 @@ fdw_options:
     # "some_schema" has no particular meaning for duckdb_server and can be set to an arbitrary value.
     # entry itself must be specified to enable Schema Import tab
     import_foreign_schema:
+    create_foreign_table:
