@@ -3,6 +3,7 @@ from typing import Dict
 import psycopg2
 from psycopg2 import sql
 import datetime
+import os
 
 from . import CONNECTION
 from .connection import ConnectionPool
@@ -48,5 +49,32 @@ class Admin:
                     cur.execute(query)
 
             print(f'System schema "{schema_name}" successfully created')
+        except psycopg2.Error as e:
+            print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}')
+
+
+    def deploy_datero_schema(self):
+        """Apply SQL scripts to deploy Datero schema"""
+        try:
+            print('Start deploying "datero" schema')
+            with self.pool.connection() as conn:
+                with conn.cursor() as cur:
+                    script_dir = os.path.dirname(__file__)  # Directory of the script
+                    file_path = os.path.join(script_dir, 'sql', 'datero.sql')
+
+                    # parse file content and execute each statement
+                    # each statement is started with a comment line '-- stmt'
+                    # and finished either with a ';' or ');' at the end of the line
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                        stmts = content.split('-- stmt')
+                        for stmt in stmts:
+                            if len(stmt) > 0:
+                                stmt = sql.SQL(stmt.strip())
+                                #print(stmt.as_string(cur))
+                                cur.execute(stmt)
+
+
+            print('Schema "datero" successfully deployed')
         except psycopg2.Error as e:
             print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}')

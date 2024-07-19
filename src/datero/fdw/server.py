@@ -97,7 +97,7 @@ class Server:
                     server['server_name'] = server_name
                     #print(f'Input: {server}')
 
-                    self.create_server(props)
+                    self.create_server(server)
         else:
             print('No foreign servers defined in config.yaml. Nothing to create.')
 
@@ -110,7 +110,11 @@ class Server:
     def create_server(self, data: Dict):
         """Create foreign server"""
         try:
-            server_name = self.gen_server_name(data)
+            if 'server_name' not in data:
+                server_name = self.gen_server_name(data)
+            else:
+                server_name = data['server_name']
+
             stmt = 'CREATE SERVER {server} FOREIGN DATA WRAPPER {fdw_name}'
             values = None
 

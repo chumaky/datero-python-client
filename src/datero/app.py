@@ -64,6 +64,7 @@ class App:
 
         self.admin.create_system_schema(DATERO_SCHEMA)
         self.admin.create_system_schema(DATERO_FDW_SCHEMA)
+        self.admin.deploy_datero_schema()
         self.extension.init_extensions()
 
         # TODO: disabling until CLI will be implemented as a ready-to-use API alternative
