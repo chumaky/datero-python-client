@@ -4,6 +4,7 @@ from typing import Dict
 import psycopg2
 from psycopg2 import sql
 from copy import deepcopy
+import json
 
 from .. import CONNECTION
 from ..connection import ConnectionPool
@@ -29,7 +30,7 @@ class Server:
 
     def server_list(self):
         """Get list of foreign servers"""
-        query = """
+        stmt = """
             SELECT fs.srvname                      AS server_name
                  , fdw.fdwname                     AS fdw_name
                  , d.description                   AS description
@@ -41,20 +42,21 @@ class Server:
                      SELECT json_object_agg(umo.option_name, umo.option_value)
                        FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
                    )                               AS user_mapping
+                 , srv.custom_options              AS advanced_options
               FROM pg_foreign_server               fs
-             INNER JOIN
-                   pg_foreign_data_wrapper         fdw
-                ON fdw.oid                         = fs.srvfdw
-              LEFT JOIN
-                   pg_user_mappings                um
-                ON um.srvname                      = fs.srvname
-              LEFT JOIN
-                   pg_description                  d
-                ON d.classoid                      = fs.tableoid
-               AND d.objoid                        = fs.oid
-               AND d.objsubid                      = 0
+             INNER JOIN pg_foreign_data_wrapper    fdw      ON fdw.oid      = fs.srvfdw
+              LEFT JOIN {servers_table}            srv      ON srv.name     = fs.srvname
+                                                           AND srv.fdw_name = fdw.fdwname
+              LEFT JOIN pg_user_mappings           um       ON um.srvname   = fs.srvname
+              LEFT JOIN pg_description             d        ON d.classoid   = fs.tableoid
+                                                           AND d.objoid     = fs.oid
+                                                           AND d.objsubid   = 0
              ORDER BY d.description
         """
+
+        query = sql.SQL(stmt).format(
+            servers_table=sql.Identifier(DATERO_SCHEMA, 'servers'),
+        )
 
         try:
             with self.pool.connection() as conn:
@@ -67,7 +69,8 @@ class Server:
                 'fdw_name': val[1],
                 'description': val[2],
                 'options': val[3],
-                'user_mapping': val[4]
+                'user_mapping': val[4],
+                'advanced_options': val[5] if val[5] is not None else {}
             } for val in rows]
 
             return res
@@ -148,6 +151,11 @@ class Server:
 
             self.set_description(server_name, data['description'])
             self.create_sys_views(server_name, data['fdw_name'])
+            self.create_server_metadata(
+                server_name, data['fdw_name'], 
+                data['description'], 
+                None if 'advanced_options' not in data else data['advanced_options']
+            )
 
             print(f'Foreign server "{server_name}" successfully created')
 
@@ -219,6 +227,8 @@ class Server:
                         conn.commit()   # explicitly commit every schema deletion
                         print(f'Schema "{schema}" successfully deleted')
 
+            self.delete_server_metadata(data["server_name"])
+
             msg = f'Server "{data["description"]}" successfully deleted'
             print(msg)
 
@@ -239,11 +249,11 @@ class Server:
                         ELSE 0
                     END)
                 , 0) + 1                        AS next_server_id
-            FROM pg_foreign_server               fs
-            INNER JOIN
-                pg_foreign_data_wrapper         fdw
+              FROM pg_foreign_server               fs
+             INNER JOIN
+                   pg_foreign_data_wrapper         fdw
                 ON fdw.oid                         = fs.srvfdw
-            WHERE fdw.fdwname = %(fdw_name)s
+             WHERE fdw.fdwname = %(fdw_name)s
         """
 
         with self.pool.connection() as conn:
@@ -311,3 +321,89 @@ class Server:
         except psycopg2.Error as e:
             print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query} : {server_name}#{DATERO_SCHEMA}#%')
             raise e
+
+
+    def get_server_options(self, server_name: str):
+        """Get server options"""
+        query = r"""
+            SELECT fso.option_name
+                 , fso.option_value
+              FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
+             WHERE fs.srvname = %(server_name)s
+        """
+
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, {'server_name': server_name})
+                res = cur.fetchall()
+
+        return res
+
+
+    def get_user_mapping_options(self, server_name: str):
+        """Get user mapping options"""
+        query = r"""
+            SELECT umo.option_name
+                 , umo.option_value
+              FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
+             WHERE um.srvname = %(server_name)s
+        """
+
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, {'server_name': server_name})
+                res = cur.fetchall()
+
+        return res
+
+
+    def create_server_metadata(self, server_name: str, fdw_name: str, description: str, custom_options: Dict):
+        """Store server entry in the servers table"""
+
+        stmt = """
+            INSERT 
+              INTO {servers_table}
+                 ( name
+                 , fdw_name
+                 , description
+                 , custom_options
+                 )
+            VALUES 
+                 ( %(server_name)s
+                 , %(fdw_name)s
+                 , %(description)s
+                 , %(custom_options)s::jsonb
+                 )
+        """
+
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                query = sql.SQL(stmt).format(
+                    servers_table=sql.Identifier(DATERO_SCHEMA, 'servers'),
+                )
+                cur.execute(query, { 
+                    'server_name': server_name, 
+                    'fdw_name': fdw_name, 
+                    'description': description, 
+                    'custom_options': json.dumps(custom_options) 
+                })
+
+        print(f'Server "{server_name}" metadata successfully registered')
+
+
+    def delete_server_metadata(self, server_name: str):
+        """Delete server metadata"""
+        stmt = """
+            DELETE 
+              FROM {servers_table}
+             WHERE name = %(server_name)s
+        """
+
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                query = sql.SQL(stmt).format(
+                    servers_table=sql.Identifier(DATERO_SCHEMA, 'servers'),
+                )
+                cur.execute(query, { 'server_name': server_name })
+
+        print(f'Server "{server_name}" metadata successfully deleted')

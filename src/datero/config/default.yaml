@@ -122,7 +122,8 @@ fdw_options:
     - servername
     - port:
         default: 1433
-    - database
+    - database:
+        default: master
     user_mapping:
     - username
     - password
