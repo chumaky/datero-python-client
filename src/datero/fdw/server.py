@@ -70,7 +70,7 @@ class Server:
                 'description': val[2],
                 'options': val[3],
                 'user_mapping': val[4],
-                'advanced_options': val[5] if val[5] is not None else {}
+                **({'advanced_options': val[5]} if val[5] is not None else {})
             } for val in rows]
 
             return res
