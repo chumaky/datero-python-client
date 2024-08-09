@@ -152,7 +152,8 @@ class Server:
             self.set_description(server_name, data['description'])
             self.create_sys_views(server_name, data['fdw_name'])
             self.create_server_metadata(
-                server_name, data['fdw_name'], 
+                server_name, 
+                data['fdw_name'], 
                 data['description'], 
                 None if 'advanced_options' not in data else data['advanced_options']
             )
@@ -173,12 +174,19 @@ class Server:
             stmt = None
             values = None
 
+            cur_server_options = self.get_server_options(data['server_name'])
+            cur_user_mapping_options = self.get_user_mapping_options(data['server_name'])
+            print(f'Current server options: {cur_server_options}')
+            print(f'Current user mapping options: {cur_user_mapping_options}')
+
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     key = 'options'
                     if key in data and len(data[key]) > 0:
                         stmt = 'ALTER SERVER {server} OPTIONS ({options})'
                         options, values = options_and_values(data[key], is_update=True)
+
+                        print(f'New server options: {options}, values: {values}')
 
                         query = sql.SQL(stmt).format(
                             server=sql.Identifier(data['server_name']),
@@ -195,6 +203,12 @@ class Server:
                     data['user_mapping']
                 )
 
+            self.update_server_metadata(
+                data['server_name'], 
+                data['fdw_name'], 
+                data['description'], 
+                None if 'advanced_options' not in data else data['advanced_options']
+            )
             print(f'Foreign server "{data["server_name"]}" successfully updated')
 
             return self.get_server(data["server_name"])
@@ -326,9 +340,10 @@ class Server:
     def get_server_options(self, server_name: str):
         """Get server options"""
         query = r"""
-            SELECT fso.option_name
-                 , fso.option_value
-              FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
+            SELECT fso.option_name                          AS option_name
+                 , fso.option_value                         AS option_value
+              FROM pg_foreign_server                        fs
+             CROSS JOIN pg_options_to_table(fs.srvoptions)  fso(option_name, option_value)
              WHERE fs.srvname = %(server_name)s
         """
 
@@ -343,9 +358,10 @@ class Server:
     def get_user_mapping_options(self, server_name: str):
         """Get user mapping options"""
         query = r"""
-            SELECT umo.option_name
-                 , umo.option_value
-              FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
+            SELECT umo.option_name                          AS option_name
+                 , umo.option_value                         AS option_value
+              FROM pg_user_mappings                         um
+             CROSS JOIN pg_options_to_table(um.umoptions)   umo(option_name, option_value)
              WHERE um.srvname = %(server_name)s
         """
 
@@ -389,6 +405,33 @@ class Server:
                 })
 
         print(f'Server "{server_name}" metadata successfully registered')
+
+
+    def update_server_metadata(self, server_name: str, fdw_name: str, description: str, custom_options: Dict):
+        """Store server entry in the servers table"""
+
+        stmt = """
+            UPDATE {servers_table}
+               SET fdw_name         = %(fdw_name)s
+                 , description      = %(description)s
+                 , custom_options   = %(custom_options)s::jsonb
+                 , modified         = CURRENT_TIMESTAMP
+             WHERE name             = %(server_name)s
+        """
+
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                query = sql.SQL(stmt).format(
+                    servers_table=sql.Identifier(DATERO_SCHEMA, 'servers'),
+                )
+                cur.execute(query, { 
+                    'server_name': server_name, 
+                    'fdw_name': fdw_name, 
+                    'description': description, 
+                    'custom_options': json.dumps(custom_options) 
+                })
+
+        print(f'Server "{server_name}" metadata successfully updated')
 
 
     def delete_server_metadata(self, server_name: str):
