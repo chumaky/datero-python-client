@@ -83,18 +83,44 @@ class UserMapping:
                 'SERVER {server} ' \
                 'OPTIONS ({options})'
 
+            cur_user_mapping_options = self.get_user_mapping_options(server)
+            #print(f'Current user mapping options: {cur_user_mapping_options}')
+
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-                    options, values = options_and_values(props, is_update=True)
+                    options, values = options_and_values(input_options=props, current_options=cur_user_mapping_options)
+                    #print(f'New user mapping options: {options.as_string(cur)}, values: {values}')
 
                     query = sql.SQL(stmt).format(
                         server=sql.Identifier(server),
                         options=options
                     )
                     stmt = query.as_string(cur)
+                    #print(f'Query: {stmt}')
                     cur.execute(query, values)
                     print(f'User mapping for foreign server "{server}" successfully updated')
 
         except psycopg2.Error as e:
             print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {stmt}\nValues: {values}')
             raise e
+
+
+    def get_user_mapping_options(self, server_name: str):
+        """Get user mapping options"""
+        query = r"""
+            SELECT umo.option_name                          AS option_name
+                 , umo.option_value                         AS option_value
+              FROM pg_user_mappings                         um
+             CROSS JOIN pg_options_to_table(um.umoptions)   umo(option_name, option_value)
+             WHERE um.srvname = %(server_name)s
+        """
+
+        with self.pool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, {'server_name': server_name})
+                ds = cur.fetchall()
+
+        # transform list of tuples to dictionary
+        res = {row[0]: row[1] for row in ds}
+        
+        return res

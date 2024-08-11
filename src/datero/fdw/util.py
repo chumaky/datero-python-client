@@ -4,18 +4,30 @@ from typing import Dict, Tuple
 from enum import Enum
 from psycopg2 import sql
 
-def options_and_values(options: Dict, is_update: bool = False) -> Tuple[sql.SQL, Dict]:
+def options_and_values(input_options: Dict, current_options: Dict = {}) -> Tuple[sql.SQL, Dict]:
     """Prepare list of key-value options in a safe bind variables manner"""
-    keys = sql.SQL(', ').join([
+
+    # direct path to specify SET/ADD modifiers
+    new_existing_options = [
         sql.SQL(' ').join([
-            sql.SQL('set' if is_update else ''),
+            sql.SQL('set' if option in current_options else 'add'),
             sql.SQL(option),
             sql.Placeholder(option)
         ])
-        for option in options.keys()
-    ])
+        for option in input_options.keys()
+    ]
+    drop_options = [
+        sql.SQL(' ').join([
+            sql.SQL('drop'),
+            sql.SQL(option)
+        ])
+        for option in current_options.keys() if option not in input_options.keys()
+    ]
+
+    keys = sql.SQL(', ').join(new_existing_options + drop_options)
+
     values = {}
-    for option, value in options.items():
+    for option, value in input_options.items():
         values[option] = str(value)
 
     return (keys, values)

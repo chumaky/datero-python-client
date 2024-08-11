@@ -175,18 +175,16 @@ class Server:
             values = None
 
             cur_server_options = self.get_server_options(data['server_name'])
-            cur_user_mapping_options = self.get_user_mapping_options(data['server_name'])
-            print(f'Current server options: {cur_server_options}')
-            print(f'Current user mapping options: {cur_user_mapping_options}')
+            #print(f'Current server options: {cur_server_options}')
 
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     key = 'options'
                     if key in data and len(data[key]) > 0:
                         stmt = 'ALTER SERVER {server} OPTIONS ({options})'
-                        options, values = options_and_values(data[key], is_update=True)
 
-                        print(f'New server options: {options}, values: {values}')
+                        options, values = options_and_values(input_options=data[key], current_options=cur_server_options)
+                        #print(f'New server options: {options.as_string(cur)}, values: {values}')
 
                         query = sql.SQL(stmt).format(
                             server=sql.Identifier(data['server_name']),
@@ -194,6 +192,7 @@ class Server:
                             options=options
                         )
                         stmt = query.as_string(cur)
+                        #print(f'Query: {stmt}')
                         cur.execute(query, values)
 
             key = 'user_mapping'
@@ -350,25 +349,10 @@ class Server:
         with self.pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(query, {'server_name': server_name})
-                res = cur.fetchall()
+                ds = cur.fetchall()
 
-        return res
-
-
-    def get_user_mapping_options(self, server_name: str):
-        """Get user mapping options"""
-        query = r"""
-            SELECT umo.option_name                          AS option_name
-                 , umo.option_value                         AS option_value
-              FROM pg_user_mappings                         um
-             CROSS JOIN pg_options_to_table(um.umoptions)   umo(option_name, option_value)
-             WHERE um.srvname = %(server_name)s
-        """
-
-        with self.pool.connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(query, {'server_name': server_name})
-                res = cur.fetchall()
+        # transform list of tuples to dictionary
+        res = {row[0]: row[1] for row in ds}
 
         return res
 
