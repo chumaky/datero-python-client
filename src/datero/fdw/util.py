@@ -7,10 +7,14 @@ from psycopg2 import sql
 def options_and_values(input_options: Dict, current_options: Dict = {}) -> Tuple[sql.SQL, Dict]:
     """Prepare list of key-value options in a safe bind variables manner"""
 
+    # for Create operation modifier must be '' empty string
+    # for Update it could be either 'set' or 'add'
+    add_or_empty = '' if current_options == {} else 'add'
+
     # direct path to specify SET/ADD modifiers
     new_existing_options = [
         sql.SQL(' ').join([
-            sql.SQL('set' if option in current_options else 'add'),
+            sql.SQL('set' if option in current_options else add_or_empty),
             sql.SQL(option),
             sql.Placeholder(option)
         ])
