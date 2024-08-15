@@ -141,7 +141,7 @@ class Schema:
             query = sql.SQL('COMMENT ON SCHEMA {schema} IS %s') \
                 .format(schema=sql.Identifier(local_schema)
                                     )
-            cur.execute(query, (f'{server_name}#{DATERO_SCHEMA}#{remote_schema}',))
+            cur.execute(query, (f'Imported from (foreign_server.schema): {server_name}.{remote_schema}',))
 
         try:
             server_name = data['server_name']

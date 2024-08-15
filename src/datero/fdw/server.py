@@ -90,7 +90,16 @@ class Server:
         """Create foreign servers defined in config if any"""
         if self.servers:
             print('Creating foreign servers from config.yaml:', len(self.servers))
-            for server_name, props in self.servers.items():
+            for name, props in self.servers.items():
+                
+                # replace spaces and hypens with underscores
+                server_name = name.replace(' ', '_').replace('-', '_')
+
+                # validate server name according to the required rules:
+                if not self.is_valid_name(server_name):
+                    print(f'Invalid server name "{server_name}". Skipping...')
+                    continue
+
                 server = self.get_server(server_name)
 
                 if server is not None:
@@ -103,6 +112,21 @@ class Server:
                     self.create_server(server)
         else:
             print('No foreign servers defined in config.yaml. Nothing to create.')
+
+
+    def is_valid_name(self, name: str) -> bool:
+        """Check if the name is a valid identifier"""
+
+        # must not start with a digit, hypen or underscore
+        if name[0].isdigit() or name[0] in ('-', '_'):
+            return False
+
+        # must not exceed 40 characters
+        if len(name) > 40:
+            return False
+
+        # must be alphanumeric, hyphen or underscore
+        return all(c.isalnum() or c in ('-', '_') for c in name)
 
 
     def create_server_by_name(self, server_name: str):
