@@ -37,7 +37,7 @@ class Server:
                  , (
                      SELECT json_object_agg(fso.option_name, fso.option_value)
                        FROM pg_options_to_table(fs.srvoptions) AS fso(option_name, option_value)
-                   )                               AS options
+                   )                               AS foreign_server
                  , (
                      SELECT json_object_agg(umo.option_name, umo.option_value)
                        FROM pg_options_to_table(um.umoptions) AS umo(option_name, option_value)
@@ -68,7 +68,7 @@ class Server:
                 'server_name': val[0],
                 'fdw_name': val[1],
                 'description': val[2],
-                'options': val[3],
+                'foreign_server': val[3],
                 'user_mapping': val[4],
                 **({'advanced_options': val[5]} if val[5] is not None else {})
             } for val in rows]
@@ -148,7 +148,7 @@ class Server:
 
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-                    key = 'options'
+                    key = 'foreign_server'
                     if key in data and len(data[key]) > 0:
                         stmt += ' OPTIONS ({options})'
                         options, values = options_and_values(data[key])
@@ -204,7 +204,7 @@ class Server:
 
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-                    key = 'options'
+                    key = 'foreign_server'
                     if key in data and len(data[key]) > 0:
                         stmt = 'ALTER SERVER {server} OPTIONS ({options})'
 
