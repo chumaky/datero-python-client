@@ -107,6 +107,7 @@ class Server:
                 else:
                     server = deepcopy(props)
                     server['server_name'] = server_name
+                    server['advanced_options'] = self.populate_advanced_options(server)
                     #print(f'Input: {server}')
 
                     self.create_server(server)
@@ -458,3 +459,28 @@ class Server:
                 cur.execute(query, { 'server_name': server_name })
 
         print(f'Server "{server_name}" metadata successfully deleted')
+
+    
+    def populate_advanced_options(self, server: Dict) -> Dict:
+        """Populate advanced options from the input options"""
+        advanced_options = {}
+
+        if 'advanced' in self.config['fdw_options'][server['fdw_name']]:
+            fdw_advanced_options = self.config['fdw_options'][server['fdw_name']]['advanced']
+
+            # traverse top level server options for FDW option sections
+            # if section present in FDW advanced options 
+            # then traverse options in the section and populate corresponding advanced options
+            # if no options present in the target section after the pass then drop it
+            for section, options in server.items():
+                if section in fdw_advanced_options:
+                    advanced_options[section] = {}
+
+                    for key, val in options.items():
+                        if key in fdw_advanced_options[section]:
+                            advanced_options[section][key] = val
+
+                    if len(advanced_options[section]) == 0:
+                        del advanced_options[section]
+        
+        return None if len(advanced_options) == 0 else advanced_options
