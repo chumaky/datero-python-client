@@ -69,7 +69,7 @@ class ConfigParser:
         self.parse_default_config()
 
         self.params = deepcopy(self.default_params)
-        
+
         self.apply_user_config()
         self.apply_env_config()
 
@@ -222,12 +222,12 @@ class ConfigParser:
         """
         self.params[CONNECTION].update({
             # datero specific variables
-            'hostname': os.environ.get('POSTGRES_HOST'      , self.params[CONNECTION]['hostname']),
-            'port'    : os.environ.get('POSTGRES_PORT'      , self.params[CONNECTION]['port'    ]),
+            'hostname': os.getenv('POSTGRES_HOST'      , self.params[CONNECTION]['hostname']),
+            'port'    : os.getenv('POSTGRES_PORT'      , self.params[CONNECTION]['port'    ]),
             # official postgres images variables
-            'database': os.environ.get('POSTGRES_DB'        , self.params[CONNECTION]['database']),
-            'username': os.environ.get('POSTGRES_USER'      , self.params[CONNECTION]['username']),
-            'password': os.environ.get('POSTGRES_PASSWORD'  , self.params[CONNECTION]['password'])
+            'database': os.getenv('POSTGRES_DB'        , self.params[CONNECTION]['database']),
+            'username': os.getenv('POSTGRES_USER'      , self.params[CONNECTION]['username']),
+            'password': os.getenv('POSTGRES_PASSWORD'  , self.params[CONNECTION]['password'])
         })
 
         #print('connection', json.dumps(self.params[CONNECTION], indent=2))

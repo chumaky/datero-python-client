@@ -19,20 +19,19 @@ class Admin:
     def healthcheck(self):
         """Check database availability"""
         try:
-            version = '1.1.0'
-            query = f"SELECT 'Connected' AS status, '{version}' AS version, now() AS heartbeat"
+            query = f"SELECT 'Connected' AS status, now() AS heartbeat"
 
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(query)
                     row = cur.fetchone()
 
-            res = { 'status': row[0], 'version': row[1], 'heartbeat': row[2] }
+            res = { 'status': row[0], 'heartbeat': row[1] }
             return res
         
         except psycopg2.Error as e:
             print(f'Error code: {e.pgcode}\nMessage: {e.pgerror}\nSQL: {query}')
-            res = { 'status': 'Not connected', 'version': version, 'heartbeat': datetime.datetime.now() }
+            res = { 'status': 'Not connected', 'heartbeat': datetime.datetime.now() }
             return res
             #raise e
 
