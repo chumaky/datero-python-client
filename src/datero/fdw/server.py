@@ -110,7 +110,11 @@ class Server:
                     server['advanced_options'] = self.populate_advanced_options(server)
                     #print(f'Input: {server}')
 
-                    self.create_server(server)
+                    # we intentionally continue on error to create as many servers as possible
+                    try:
+                        self.create_server(server)
+                    except Exception as e:
+                        print(f'Error during creating server {server_name}: {e}')
         else:
             print('No foreign servers defined in config.yaml. Nothing to create.')
 
@@ -167,11 +171,12 @@ class Server:
                     stmt = query.as_string(cur)
                     cur.execute(query, values)
 
+            # user mapping could have 0 options
             key = 'user_mapping'
-            if key in data and len(data[key]) > 0:
+            if key in data:
                 self.user_mapping.create_user_mapping(
                     server_name,
-                    data['user_mapping']
+                    data[key]
                 )
 
             self.set_description(server_name, data['description'])

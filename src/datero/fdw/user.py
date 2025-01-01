@@ -51,20 +51,24 @@ class UserMapping:
     def create_user_mapping(self, server: str, props: Dict):
         """Create user mapping for a foreign server"""
         try:
+            stmt = 'CREATE USER MAPPING FOR CURRENT_USER SERVER {server}'
             values = None
-            stmt = \
-                'CREATE USER MAPPING FOR CURRENT_USER ' \
-                'SERVER {server} ' \
-                'OPTIONS ({options})'
 
             with self.pool.connection() as conn:
                 with conn.cursor() as cur:
-                    options, values = options_and_values(props)
+                    if props is not None and len(props) > 0:
+                        stmt += ' OPTIONS ({options})'
+                        options, values = options_and_values(props)
 
-                    query = sql.SQL(stmt).format(
-                        server=sql.Identifier(server),
-                        options=options
-                    )
+                        query = sql.SQL(stmt).format(
+                            server=sql.Identifier(server),
+                            options=options
+                        )
+                    else:
+                        query = sql.SQL(stmt).format(
+                            server=sql.Identifier(server)
+                        )
+
                     stmt = query.as_string(cur)
                     cur.execute(query, values)
                     print(f'User mapping for foreign server "{server}" successfully created')
